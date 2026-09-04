@@ -241,4 +241,57 @@ class ListingsApiTest {
         mockMvc.perform(get("/api/listings/{id}", listing.getId()))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void buyingWithoutAuthenticationIsRejected() throws Exception {
+        Listing listing = listingRepository.save(new Listing("Chair", "Office chair", new BigDecimal("40.00"),
+                Category.FURNITURE, "chair.jpg", 1L));
+
+        mockMvc.perform(post("/api/listings/{id}/buy", listing.getId()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void buyingYourOwnListingIsRejected() throws Exception {
+        Session session = registerAndLoginSession("liam");
+        Listing listing = listingRepository.save(new Listing("Chair", "Office chair", new BigDecimal("40.00"),
+                Category.FURNITURE, "chair.jpg", session.userId()));
+
+        mockMvc.perform(post("/api/listings/{id}/buy", listing.getId())
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void buyingAnAlreadySoldListingIsRejected() throws Exception {
+        Session session = registerAndLoginSession("mona");
+        Listing listing = listingRepository.save(new Listing("Chair", "Office chair", new BigDecimal("40.00"),
+                Category.FURNITURE, "chair.jpg", session.userId() + 1));
+        ReflectionTestUtils.setField(listing, "status", ListingStatus.SOLD);
+        listingRepository.save(listing);
+
+        mockMvc.perform(post("/api/listings/{id}/buy", listing.getId())
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void buyingAnActiveListingOwnedBySomeoneElseMarksItSoldWithTheBuyerRecorded() throws Exception {
+        Session session = registerAndLoginSession("nina");
+        Listing listing = listingRepository.save(new Listing("Chair", "Office chair", new BigDecimal("40.00"),
+                Category.FURNITURE, "chair.jpg", session.userId() + 1));
+
+        mockMvc.perform(post("/api/listings/{id}/buy", listing.getId())
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SOLD"))
+                .andExpect(jsonPath("$.buyerId").value(session.userId()));
+
+        mockMvc.perform(get("/api/listings/{id}", listing.getId()))
+                .andExpect(jsonPath("$.status").value("SOLD"))
+                .andExpect(jsonPath("$.buyerId").value(session.userId()));
+    }
 }

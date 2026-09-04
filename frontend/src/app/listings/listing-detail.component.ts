@@ -18,6 +18,7 @@ export class ListingDetailComponent implements OnInit {
   listing: Listing | null = null;
   notFound = false;
   deleteError = '';
+  buyError = '';
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -61,6 +62,26 @@ export class ListingDetailComponent implements OnInit {
       },
       error: () => {
         this.deleteError = 'Could not delete this listing.';
+      },
+    });
+  }
+
+  canBuy(): boolean {
+    const userId = this.authService.session()?.userId;
+    return !!this.listing && this.listing.status === 'ACTIVE' && !!userId && this.listing.ownerId !== userId;
+  }
+
+  buy(): void {
+    if (!this.listing) {
+      return;
+    }
+    this.buyError = '';
+    this.listingsService.buy(this.listing.id).subscribe({
+      next: (listing) => {
+        this.listing = listing;
+      },
+      error: () => {
+        this.buyError = 'Could not buy this listing.';
       },
     });
   }

@@ -84,43 +84,47 @@ describe('ListingDetailComponent', () => {
     expect(element.querySelector('.not-found')?.textContent).toContain('not found');
   });
 
-  it('does not offer a delete action when no one is logged in', () => {
+  it('offers neither a delete nor a buy action when no one is logged in', () => {
     fixture.detectChanges();
     httpMock.expectOne((request) => request.url === '/api/listings/1').flush(listing);
     fixture.detectChanges();
 
     const element: HTMLElement = fixture.nativeElement;
-    expect(element.querySelector('button')).toBeNull();
+    expect(element.querySelector('.delete-listing')).toBeNull();
+    expect(element.querySelector('.buy-listing')).toBeNull();
   });
 
-  it('does not offer a delete action to a User who does not own the listing', () => {
+  it('offers a buy action, but not a delete action, to a User who does not own the listing', () => {
     setUpAsLoggedInUser(2);
     fixture.detectChanges();
     httpMock.expectOne((request) => request.url === '/api/listings/1').flush(listing);
     fixture.detectChanges();
 
     const element: HTMLElement = fixture.nativeElement;
-    expect(element.querySelector('button')).toBeNull();
+    expect(element.querySelector('.delete-listing')).toBeNull();
+    expect(element.querySelector('.buy-listing')).toBeTruthy();
   });
 
-  it('does not offer a delete action for a SOLD listing even to its owner', () => {
+  it('offers neither action for a SOLD listing, even to its owner', () => {
     setUpAsLoggedInUser(1);
     fixture.detectChanges();
     httpMock.expectOne((request) => request.url === '/api/listings/1').flush({ ...listing, status: 'SOLD' });
     fixture.detectChanges();
 
     const element: HTMLElement = fixture.nativeElement;
-    expect(element.querySelector('button')).toBeNull();
+    expect(element.querySelector('.delete-listing')).toBeNull();
+    expect(element.querySelector('.buy-listing')).toBeNull();
   });
 
-  it('offers a delete action to the owner of an ACTIVE listing, and deleting navigates back to browse', () => {
+  it('offers a delete action, but not a buy action, to the owner of an ACTIVE listing, and deleting navigates back to browse', () => {
     setUpAsLoggedInUser(1);
     fixture.detectChanges();
     httpMock.expectOne((request) => request.url === '/api/listings/1').flush(listing);
     fixture.detectChanges();
 
     const element: HTMLElement = fixture.nativeElement;
-    const button = element.querySelector('button') as HTMLButtonElement;
+    expect(element.querySelector('.buy-listing')).toBeNull();
+    const button = element.querySelector('.delete-listing') as HTMLButtonElement;
     expect(button).toBeTruthy();
     button.click();
 
@@ -136,15 +140,53 @@ describe('ListingDetailComponent', () => {
     fixture.detectChanges();
 
     const element: HTMLElement = fixture.nativeElement;
-    const button = element.querySelector('button') as HTMLButtonElement;
+    const button = element.querySelector('.delete-listing') as HTMLButtonElement;
     button.click();
 
     httpMock
       .expectOne((request) => request.url === '/api/listings/1' && request.method === 'DELETE')
-      .flush({ message: 'Only an ACTIVE listing can be deleted' }, { status: 409, statusText: 'Conflict' });
+      .flush({ message: 'This listing is not ACTIVE' }, { status: 409, statusText: 'Conflict' });
     fixture.detectChanges();
 
     expect(router.navigateByUrl).not.toHaveBeenCalled();
     expect(element.querySelector('.delete-error')?.textContent).toContain('Could not delete');
+  });
+
+  it('buying updates the listing in place to reflect the new SOLD status', () => {
+    setUpAsLoggedInUser(2);
+    fixture.detectChanges();
+    httpMock.expectOne((request) => request.url === '/api/listings/1').flush(listing);
+    fixture.detectChanges();
+
+    const element: HTMLElement = fixture.nativeElement;
+    const button = element.querySelector('.buy-listing') as HTMLButtonElement;
+    expect(button).toBeTruthy();
+    button.click();
+
+    httpMock
+      .expectOne((request) => request.url === '/api/listings/1/buy' && request.method === 'POST')
+      .flush({ ...listing, status: 'SOLD', buyerId: 2 });
+    fixture.detectChanges();
+
+    expect(element.querySelector('.status')?.textContent).toContain('SOLD');
+    expect(element.querySelector('.buy-listing')).toBeNull();
+  });
+
+  it('shows an error and keeps the listing when buying fails', () => {
+    setUpAsLoggedInUser(2);
+    fixture.detectChanges();
+    httpMock.expectOne((request) => request.url === '/api/listings/1').flush(listing);
+    fixture.detectChanges();
+
+    const element: HTMLElement = fixture.nativeElement;
+    const button = element.querySelector('.buy-listing') as HTMLButtonElement;
+    button.click();
+
+    httpMock
+      .expectOne((request) => request.url === '/api/listings/1/buy' && request.method === 'POST')
+      .flush({ message: 'This listing is not ACTIVE' }, { status: 409, statusText: 'Conflict' });
+    fixture.detectChanges();
+
+    expect(element.querySelector('.buy-error')?.textContent).toContain('Could not buy');
   });
 });

@@ -38,4 +38,8 @@ export class ListingsService {
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`/api/listings/${id}`);
   }
+
+  buy(id: number): Observable<Listing> {
+    return this.http.post<Listing>(`/api/listings/${id}/buy`, {});
+  }
 }

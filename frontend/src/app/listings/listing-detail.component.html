@@ -7,8 +7,11 @@
   <p class="category">{{ categoryLabel() }}</p>
   <p class="description">{{ listing.description }}</p>
 
-  <button *ngIf="canDelete()" type="button" (click)="delete()">Delete listing</button>
+  <button *ngIf="canDelete()" type="button" class="delete-listing" (click)="delete()">Delete listing</button>
   <p *ngIf="deleteError" class="delete-error">{{ deleteError }}</p>
+
+  <button *ngIf="canBuy()" type="button" class="buy-listing" (click)="buy()">Buy listing</button>
+  <p *ngIf="buyError" class="buy-error">{{ buyError }}</p>
 </section>
 
 <p *ngIf="notFound" class="not-found">Listing not found.</p>

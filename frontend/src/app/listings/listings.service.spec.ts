@@ -120,4 +120,28 @@ describe('ListingsService', () => {
 
     expect(completed).toBeTrue();
   });
+
+  it('posts to the buy endpoint for the given listing id', () => {
+    let result: Listing | undefined;
+    const listing: Listing = {
+      id: 1,
+      title: 'Bike',
+      description: 'Road bike',
+      price: 150,
+      category: 'VEHICLES',
+      photoReference: 'bike.jpg',
+      status: 'SOLD',
+      ownerId: 2,
+      buyerId: 1,
+    };
+
+    service.buy(1).subscribe((response) => {
+      result = response;
+    });
+
+    const req = httpMock.expectOne((request) => request.url === '/api/listings/1/buy' && request.method === 'POST');
+    req.flush(listing);
+
+    expect(result).toEqual(listing);
+  });
 });

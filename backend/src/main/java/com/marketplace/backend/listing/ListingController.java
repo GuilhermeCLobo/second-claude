@@ -58,4 +58,12 @@ public class ListingController {
         listingService.delete(id, requesterId);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/buy")
+    public ListingResponse buy(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Long id) {
+        Long requesterId = currentUserResolver.resolve(authorization);
+        return listingService.buy(id, requesterId);
+    }
 }

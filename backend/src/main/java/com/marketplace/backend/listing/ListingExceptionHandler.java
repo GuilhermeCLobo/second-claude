@@ -30,4 +30,9 @@ public class ListingExceptionHandler {
     public ResponseEntity<Map<String, String>> handleListingNotActive(ListingNotActiveException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", ex.getMessage()));
     }
+
+    @ExceptionHandler(CannotBuyOwnListingException.class)
+    public ResponseEntity<Map<String, String>> handleCannotBuyOwnListing(CannotBuyOwnListingException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
+    }
 }

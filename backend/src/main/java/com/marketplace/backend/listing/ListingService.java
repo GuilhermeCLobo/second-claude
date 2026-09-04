@@ -41,6 +41,20 @@ public class ListingService {
         return ListingResponse.from(saved);
     }
 
+    public ListingResponse buy(Long id, Long requesterId) {
+        Listing listing = listingRepository.findById(id)
+                .orElseThrow(() -> new ListingNotFoundException(id));
+        if (listing.getOwnerId().equals(requesterId)) {
+            throw new CannotBuyOwnListingException();
+        }
+        if (listing.getStatus() != ListingStatus.ACTIVE) {
+            throw new ListingNotActiveException();
+        }
+        listing.markSold(requesterId);
+        Listing saved = listingRepository.save(listing);
+        return ListingResponse.from(saved);
+    }
+
     public void delete(Long id, Long requesterId) {
         Listing listing = listingRepository.findById(id)
                 .orElseThrow(() -> new ListingNotFoundException(id));

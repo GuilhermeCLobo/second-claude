@@ -93,4 +93,9 @@ public class Listing {
     public Long getBuyerId() {
         return buyerId;
     }
+
+    public void markSold(Long buyerId) {
+        this.status = ListingStatus.SOLD;
+        this.buyerId = buyerId;
+    }
 }

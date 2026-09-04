@@ -40,6 +40,20 @@ public class ListingController {
         return listingService.getById(id);
     }
 
+    @GetMapping("/mine/posted")
+    public List<ListingResponse> myPosted(
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Long requesterId = currentUserResolver.resolve(authorization);
+        return listingService.myPosted(requesterId);
+    }
+
+    @GetMapping("/mine/bought")
+    public List<ListingResponse> myBought(
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Long requesterId = currentUserResolver.resolve(authorization);
+        return listingService.myBought(requesterId);
+    }
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ListingResponse> create(
             @RequestHeader(value = "Authorization", required = false) String authorization,

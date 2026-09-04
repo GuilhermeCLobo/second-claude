@@ -42,4 +42,12 @@ export class ListingsService {
   buy(id: number): Observable<Listing> {
     return this.http.post<Listing>(`/api/listings/${id}/buy`, {});
   }
+
+  myPosted(): Observable<Listing[]> {
+    return this.http.get<Listing[]>('/api/listings/mine/posted');
+  }
+
+  myBought(): Observable<Listing[]> {
+    return this.http.get<Listing[]>('/api/listings/mine/bought');
+  }
 }

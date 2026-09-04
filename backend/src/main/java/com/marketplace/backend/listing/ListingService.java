@@ -31,6 +31,14 @@ public class ListingService {
         return ListingResponse.from(listing);
     }
 
+    public List<ListingResponse> myPosted(Long ownerId) {
+        return listingRepository.findByOwnerId(ownerId).stream().map(ListingResponse::from).toList();
+    }
+
+    public List<ListingResponse> myBought(Long buyerId) {
+        return listingRepository.findByBuyerId(buyerId).stream().map(ListingResponse::from).toList();
+    }
+
     public ListingResponse create(CreateListingRequest request, MultipartFile photo, Long ownerId) {
         if (photo == null || photo.isEmpty()) {
             throw new MissingPhotoException();

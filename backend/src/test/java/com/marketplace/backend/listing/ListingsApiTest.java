@@ -333,4 +333,55 @@ class ListingsApiTest {
         assertThat(afterRace.getStatus()).isEqualTo(ListingStatus.SOLD);
         assertThat(afterRace.getBuyerId()).isIn(buyerA.userId(), buyerB.userId());
     }
+
+    @Test
+    void fetchingMyPostedListingsWithoutAuthenticationIsRejected() throws Exception {
+        mockMvc.perform(get("/api/listings/mine/posted"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void fetchingMyBoughtListingsWithoutAuthenticationIsRejected() throws Exception {
+        mockMvc.perform(get("/api/listings/mine/bought"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void myPostedListingsReturnsOnlyListingsOwnedByTheCurrentUser() throws Exception {
+        Session session = registerAndLoginSession("oscar");
+        listingRepository.save(new Listing("Guitar", "Acoustic guitar", new BigDecimal("90.00"),
+                Category.OTHER, "guitar.jpg", session.userId()));
+        listingRepository.save(new Listing("Drone", "Camera drone", new BigDecimal("250.00"),
+                Category.ELECTRONICS, "drone.jpg", session.userId() + 1));
+
+        mockMvc.perform(get("/api/listings/mine/posted")
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].title", org.hamcrest.Matchers.hasItem("Guitar")))
+                .andExpect(jsonPath("$[*].title", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("Drone"))))
+                .andExpect(jsonPath("$[*].ownerId", org.hamcrest.Matchers.everyItem(
+                        org.hamcrest.Matchers.equalTo(session.userId().intValue()))));
+    }
+
+    @Test
+    void myBoughtListingsReturnsOnlyListingsBoughtByTheCurrentUser() throws Exception {
+        Session session = registerAndLoginSession("paula");
+        Listing bought = listingRepository.save(new Listing("Tablet", "10-inch tablet", new BigDecimal("200.00"),
+                Category.ELECTRONICS, "tablet.jpg", session.userId() + 1));
+        ReflectionTestUtils.setField(bought, "status", ListingStatus.SOLD);
+        ReflectionTestUtils.setField(bought, "buyerId", session.userId());
+        listingRepository.save(bought);
+        listingRepository.save(new Listing("Rug", "Wool rug", new BigDecimal("60.00"),
+                Category.HOME_AND_GARDEN, "rug.jpg", session.userId() + 1));
+
+        mockMvc.perform(get("/api/listings/mine/bought")
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].title", org.hamcrest.Matchers.hasItem("Tablet")))
+                .andExpect(jsonPath("$[*].title", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("Rug"))))
+                .andExpect(jsonPath("$[*].buyerId", org.hamcrest.Matchers.everyItem(
+                        org.hamcrest.Matchers.equalTo(session.userId().intValue()))));
+    }
 }

@@ -1,0 +1,28 @@
+<section class="posted-listings">
+  <h2>Posted by me</h2>
+  <ul>
+    <li *ngFor="let listing of postedListings" [class.sold]="listing.status === 'SOLD'">
+      <a [routerLink]="['/listings', listing.id]">
+        <img *ngIf="listing.photoReference" [src]="listing.photoReference" [alt]="listing.title" class="thumbnail" />
+        <span class="title">{{ listing.title }}</span>
+        <span class="price">{{ listing.price | currency }}</span>
+        <span class="status" *ngIf="listing.status === 'SOLD'">SOLD</span>
+      </a>
+    </li>
+  </ul>
+  <p *ngIf="postedListings.length === 0" class="empty">You haven't posted any listings yet.</p>
+</section>
+
+<section class="bought-listings">
+  <h2>Bought by me</h2>
+  <ul>
+    <li *ngFor="let listing of boughtListings">
+      <a [routerLink]="['/listings', listing.id]">
+        <img *ngIf="listing.photoReference" [src]="listing.photoReference" [alt]="listing.title" class="thumbnail" />
+        <span class="title">{{ listing.title }}</span>
+        <span class="price">{{ listing.price | currency }}</span>
+      </a>
+    </li>
+  </ul>
+  <p *ngIf="boughtListings.length === 0" class="empty">You haven't bought any listings yet.</p>
+</section>

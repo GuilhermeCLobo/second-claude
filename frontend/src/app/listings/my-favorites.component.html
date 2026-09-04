@@ -1,16 +1,23 @@
 <section class="favorited-listings">
-  <h2>My Favorites</h2>
-  <ul>
-    <li *ngFor="let listing of favoritedListings" [class.sold]="listing.status === 'SOLD'">
-      <a [routerLink]="['/listings', listing.id]">
-        <img *ngIf="listing.photos.length" [src]="listing.photos[0].reference" [alt]="listing.title" class="thumbnail" />
-        <span class="title">{{ listing.title }}</span>
-        <span class="price">{{ listing.price | currency }}</span>
-        <span class="status" *ngIf="listing.status === 'SOLD'">SOLD</span>
-      </a>
-      <a class="owner-link" [routerLink]="['/users', listing.ownerUsername]">{{ listing.ownerUsername }}</a>
-      <button type="button" class="unfavorite" (click)="unfavorite(listing)">Unfavorite</button>
-    </li>
-  </ul>
-  <p *ngIf="favoritedListings.length === 0" class="empty">You haven't favorited any listings yet.</p>
+  <div class="section-heading">
+    <h2>My Favorites</h2>
+  </div>
+
+  <div class="loading-state" *ngIf="loading"><span class="spinner"></span></div>
+
+  <ng-container *ngIf="!loading">
+    <ul class="listing-grid" *ngIf="favoritedListings.length">
+      <li *ngFor="let listing of favoritedListings" class="listing-card" [class.sold]="listing.status === 'SOLD'">
+        <a [routerLink]="['/listings', listing.id]">
+          <img *ngIf="listing.photos.length" [src]="listing.photos[0].reference" [alt]="listing.title" class="thumbnail" />
+          <span class="status" *ngIf="listing.status === 'SOLD'">SOLD</span>
+          <span class="title">{{ listing.title }}</span>
+          <span class="price">{{ listing.price | currency }}</span>
+        </a>
+        <a class="owner-link" [routerLink]="['/users', listing.ownerUsername]">{{ listing.ownerUsername }}</a>
+        <button type="button" class="unfavorite" (click)="unfavorite(listing)">Unfavorite</button>
+      </li>
+    </ul>
+    <p *ngIf="favoritedListings.length === 0" class="empty">You haven't favorited any listings yet.</p>
+  </ng-container>
 </section>

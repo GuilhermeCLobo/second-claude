@@ -1,33 +1,44 @@
-<form [formGroup]="form" (ngSubmit)="submit()">
-  <label>
-    Title
-    <input type="text" formControlName="title" name="title" />
-  </label>
+<section class="page-form">
+  <h1>Post a listing</h1>
 
-  <label>
-    Description
-    <textarea formControlName="description" name="description"></textarea>
-  </label>
+  <form class="form panel" [formGroup]="form" (ngSubmit)="submit()">
+    <label class="field">
+      Title
+      <input type="text" formControlName="title" name="title" placeholder="e.g. Vintage armchair" />
+    </label>
 
-  <label>
-    Price
-    <input type="number" formControlName="price" name="price" step="0.01" />
-  </label>
+    <label class="field">
+      Description
+      <textarea formControlName="description" name="description" placeholder="Condition, dimensions, pickup details…"></textarea>
+    </label>
 
-  <label>
-    Category
-    <select formControlName="category" name="category">
-      <option value="" disabled>Select a category</option>
-      <option *ngFor="let category of categories" [value]="category.value">{{ category.label }}</option>
-    </select>
-  </label>
+    <div class="field-row">
+      <label class="field">
+        Price
+        <input type="number" formControlName="price" name="price" step="0.01" placeholder="0.00" />
+      </label>
 
-  <label>
-    Photos
-    <input type="file" accept="image/*" name="photo" multiple (change)="onPhotoSelected($event)" />
-  </label>
+      <label class="field">
+        Category
+        <select formControlName="category" name="category">
+          <option value="" disabled>Select a category</option>
+          <option *ngFor="let category of categories" [value]="category.value">{{ category.label }}</option>
+        </select>
+      </label>
+    </div>
 
-  <button type="submit" [disabled]="!canSubmit">Post listing</button>
+    <label class="field">
+      Photos
+      <input type="file" accept="image/*" name="photo" multiple (change)="onPhotoSelected($event)" />
+      <span class="field-hint">Up to 6 photos. The first one becomes the cover photo.</span>
+    </label>
 
-  <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
-</form>
+    <div class="selected-photos" *ngIf="selectedPhotos.length">
+      <span class="badge" *ngFor="let photo of selectedPhotos">{{ photo.name }}</span>
+    </div>
+
+    <button type="submit" class="btn btn-primary" [disabled]="!canSubmit">Post listing</button>
+
+    <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
+  </form>
+</section>

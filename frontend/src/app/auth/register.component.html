@@ -1,22 +1,29 @@
-<form [formGroup]="form" (ngSubmit)="submit()" *ngIf="!registered">
-  <label>
-    Username
-    <input type="text" formControlName="username" name="username" />
-  </label>
+<div class="panel panel-narrow">
+  <ng-container *ngIf="!registered; else done">
+    <h1>Create an account</h1>
+    <form class="form" [formGroup]="form" (ngSubmit)="submit()">
+      <label class="field">
+        Username
+        <input type="text" formControlName="username" name="username" autocomplete="username" />
+      </label>
 
-  <label>
-    Password
-    <input type="password" formControlName="password" name="password" />
-  </label>
+      <label class="field">
+        Password
+        <input type="password" formControlName="password" name="password" autocomplete="new-password" />
+      </label>
 
-  <label>
-    Email
-    <input type="email" formControlName="email" name="email" />
-  </label>
+      <label class="field">
+        Email
+        <input type="email" formControlName="email" name="email" autocomplete="email" />
+      </label>
 
-  <button type="submit" [disabled]="form.invalid">Register</button>
+      <button type="submit" class="btn btn-primary btn-block" [disabled]="form.invalid">Register</button>
 
-  <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
-</form>
+      <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
+    </form>
+  </ng-container>
 
-<p *ngIf="registered" class="success">Registered! You can now log in.</p>
+  <ng-template #done>
+    <p class="success">Registered! You can now log in.</p>
+  </ng-template>
+</div>

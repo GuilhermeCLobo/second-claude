@@ -1,29 +1,43 @@
 <section class="posted-listings">
-  <h2>Posted by me</h2>
-  <ul>
-    <li *ngFor="let listing of postedListings" [class.sold]="listing.status === 'SOLD'">
-      <a [routerLink]="['/listings', listing.id]">
-        <img *ngIf="listing.photos.length" [src]="listing.photos[0].reference" [alt]="listing.title" class="thumbnail" />
-        <span class="title">{{ listing.title }}</span>
-        <span class="price">{{ listing.price | currency }}</span>
-        <span class="status" *ngIf="listing.status === 'SOLD'">SOLD</span>
-      </a>
-    </li>
-  </ul>
-  <p *ngIf="postedListings.length === 0" class="empty">You haven't posted any listings yet.</p>
+  <div class="section-heading">
+    <h2>Posted by me</h2>
+  </div>
+
+  <div class="loading-state" *ngIf="postedLoading"><span class="spinner"></span></div>
+
+  <ng-container *ngIf="!postedLoading">
+    <ul class="listing-grid" *ngIf="postedListings.length">
+      <li *ngFor="let listing of postedListings" class="listing-card" [class.sold]="listing.status === 'SOLD'">
+        <a [routerLink]="['/listings', listing.id]">
+          <img *ngIf="listing.photos.length" [src]="listing.photos[0].reference" [alt]="listing.title" class="thumbnail" />
+          <span class="status" *ngIf="listing.status === 'SOLD'">SOLD</span>
+          <span class="title">{{ listing.title }}</span>
+          <span class="price">{{ listing.price | currency }}</span>
+        </a>
+      </li>
+    </ul>
+    <p *ngIf="postedListings.length === 0" class="empty">You haven't posted any listings yet.</p>
+  </ng-container>
 </section>
 
 <section class="bought-listings">
-  <h2>Bought by me</h2>
-  <ul>
-    <li *ngFor="let listing of boughtListings">
-      <a [routerLink]="['/listings', listing.id]">
-        <img *ngIf="listing.photos.length" [src]="listing.photos[0].reference" [alt]="listing.title" class="thumbnail" />
-        <span class="title">{{ listing.title }}</span>
-        <span class="price">{{ listing.price | currency }}</span>
-      </a>
-      <a class="owner-link" [routerLink]="['/users', listing.ownerUsername]">{{ listing.ownerUsername }}</a>
-    </li>
-  </ul>
-  <p *ngIf="boughtListings.length === 0" class="empty">You haven't bought any listings yet.</p>
+  <div class="section-heading">
+    <h2>Bought by me</h2>
+  </div>
+
+  <div class="loading-state" *ngIf="boughtLoading"><span class="spinner"></span></div>
+
+  <ng-container *ngIf="!boughtLoading">
+    <ul class="listing-grid" *ngIf="boughtListings.length">
+      <li *ngFor="let listing of boughtListings" class="listing-card">
+        <a [routerLink]="['/listings', listing.id]">
+          <img *ngIf="listing.photos.length" [src]="listing.photos[0].reference" [alt]="listing.title" class="thumbnail" />
+          <span class="title">{{ listing.title }}</span>
+          <span class="price">{{ listing.price | currency }}</span>
+        </a>
+        <a class="owner-link" [routerLink]="['/users', listing.ownerUsername]">{{ listing.ownerUsername }}</a>
+      </li>
+    </ul>
+    <p *ngIf="boughtListings.length === 0" class="empty">You haven't bought any listings yet.</p>
+  </ng-container>
 </section>

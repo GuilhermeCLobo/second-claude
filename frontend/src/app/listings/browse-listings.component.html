@@ -1,63 +1,76 @@
 <section>
-  <label>
-    Search
-    <input type="text" placeholder="Search title or description" (change)="onSearchChange($event)" />
-  </label>
+  <div class="section-heading">
+    <h1>Browse listings</h1>
+  </div>
 
-  <label>
-    Category
-    <select (change)="onCategoryChange($event)">
-      <option value="">All categories</option>
-      <option *ngFor="let category of categories" [value]="category.value">{{ category.label }}</option>
-    </select>
-  </label>
+  <div class="filter-bar panel">
+    <label class="field">
+      Search
+      <input type="text" placeholder="Search title or description" (change)="onSearchChange($event)" />
+    </label>
 
-  <label>
-    Min price
-    <input type="number" min="0" (change)="onMinPriceChange($event)" />
-  </label>
+    <label class="field">
+      Category
+      <select (change)="onCategoryChange($event)">
+        <option value="">All categories</option>
+        <option *ngFor="let category of categories" [value]="category.value">{{ category.label }}</option>
+      </select>
+    </label>
 
-  <label>
-    Max price
-    <input type="number" min="0" (change)="onMaxPriceChange($event)" />
-  </label>
+    <label class="field">
+      Min price
+      <input type="number" min="0" placeholder="0" (change)="onMinPriceChange($event)" />
+    </label>
 
-  <label>
-    Sort by
-    <select (change)="onSortChange($event)">
-      <option value="NEWEST">Newest</option>
-      <option value="PRICE_ASC">Price: low to high</option>
-      <option value="PRICE_DESC">Price: high to low</option>
-    </select>
-  </label>
+    <label class="field">
+      Max price
+      <input type="number" min="0" placeholder="Any" (change)="onMaxPriceChange($event)" />
+    </label>
 
-  <ul>
-    <li *ngFor="let listing of listings" [class.sold]="listing.status === 'SOLD'">
-      <a [routerLink]="['/listings', listing.id]">
-        <img *ngIf="listing.photos.length" [src]="listing.photos[0].reference" [alt]="listing.title" class="thumbnail" />
-        <span class="title">{{ listing.title }}</span>
-        <span class="price">{{ listing.price | currency }}</span>
-        <span class="status" *ngIf="listing.status === 'SOLD'">SOLD</span>
-      </a>
-      <a class="owner-link" [routerLink]="['/users', listing.ownerUsername]">{{ listing.ownerUsername }}</a>
-      <button
-        *ngIf="authService.session()"
-        type="button"
-        class="favorite-toggle"
-        [class.favorited]="listing.favorited"
-        (click)="toggleFavorite(listing)"
-      >
-        {{ listing.favorited ? 'Unfavorite' : 'Favorite' }}
-      </button>
-    </li>
-  </ul>
+    <label class="field">
+      Sort by
+      <select (change)="onSortChange($event)">
+        <option value="NEWEST">Newest</option>
+        <option value="PRICE_ASC">Price: low to high</option>
+        <option value="PRICE_DESC">Price: high to low</option>
+      </select>
+    </label>
+  </div>
 
-  <p *ngIf="listings.length === 0" class="empty">No listings found.</p>
+  <div class="loading-state" *ngIf="loading">
+    <span class="spinner"></span>
+  </div>
 
-  <nav class="pagination" *ngIf="totalPages > 1">
+  <ng-container *ngIf="!loading">
+    <ul class="listing-grid" *ngIf="listings.length">
+      <li *ngFor="let listing of listings" class="listing-card" [class.sold]="listing.status === 'SOLD'">
+        <a [routerLink]="['/listings', listing.id]">
+          <img *ngIf="listing.photos.length" [src]="listing.photos[0].reference" [alt]="listing.title" class="thumbnail" />
+          <span class="status" *ngIf="listing.status === 'SOLD'">SOLD</span>
+          <span class="title">{{ listing.title }}</span>
+          <span class="price">{{ listing.price | currency }}</span>
+        </a>
+        <a class="owner-link" [routerLink]="['/users', listing.ownerUsername]">{{ listing.ownerUsername }}</a>
+        <button
+          *ngIf="authService.session()"
+          type="button"
+          class="favorite-toggle"
+          [class.favorited]="listing.favorited"
+          (click)="toggleFavorite(listing)"
+        >
+          {{ listing.favorited ? 'Unfavorite' : 'Favorite' }}
+        </button>
+      </li>
+    </ul>
+
+    <p *ngIf="listings.length === 0" class="empty">No listings found.</p>
+  </ng-container>
+
+  <nav class="pagination" *ngIf="!loading && totalPages > 1">
     <button
       *ngFor="let pageNumber of pageNumbers"
       type="button"
+      class="btn btn-secondary btn-sm"
       [class.active]="pageNumber === page"
       (click)="goToPage(pageNumber)"
     >

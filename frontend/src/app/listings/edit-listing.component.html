@@ -1,30 +1,36 @@
-<form *ngIf="!notFound" [formGroup]="form" (ngSubmit)="submit()">
-  <label>
-    Title
-    <input type="text" formControlName="title" name="title" />
-  </label>
+<section class="page-form" *ngIf="!notFound">
+  <h1>Edit listing</h1>
 
-  <label>
-    Description
-    <textarea formControlName="description" name="description"></textarea>
-  </label>
+  <form class="form panel" [formGroup]="form" (ngSubmit)="submit()">
+    <label class="field">
+      Title
+      <input type="text" formControlName="title" name="title" />
+    </label>
 
-  <label>
-    Price
-    <input type="number" formControlName="price" name="price" step="0.01" />
-  </label>
+    <label class="field">
+      Description
+      <textarea formControlName="description" name="description"></textarea>
+    </label>
 
-  <label>
-    Category
-    <select formControlName="category" name="category">
-      <option value="" disabled>Select a category</option>
-      <option *ngFor="let category of categories" [value]="category.value">{{ category.label }}</option>
-    </select>
-  </label>
+    <div class="field-row">
+      <label class="field">
+        Price
+        <input type="number" formControlName="price" name="price" step="0.01" />
+      </label>
 
-  <button type="submit" [disabled]="!form.valid">Save changes</button>
+      <label class="field">
+        Category
+        <select formControlName="category" name="category">
+          <option value="" disabled>Select a category</option>
+          <option *ngFor="let category of categories" [value]="category.value">{{ category.label }}</option>
+        </select>
+      </label>
+    </div>
 
-  <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
-</form>
+    <button type="submit" class="btn btn-primary" [disabled]="!form.valid">Save changes</button>
+
+    <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
+  </form>
+</section>
 
 <p *ngIf="notFound" class="not-found">Listing not found.</p>

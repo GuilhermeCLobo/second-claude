@@ -1,81 +1,100 @@
-<section *ngIf="listing as listing">
-  <div class="photos" *ngIf="listing.photos.length">
-    <img *ngFor="let photo of listing.photos" [src]="photo.reference" [alt]="listing.title" class="photo" />
+<div class="loading-state" *ngIf="loading">
+  <span class="spinner"></span>
+</div>
+
+<section *ngIf="listing as listing" class="listing-detail">
+  <div class="listing-detail__gallery">
+    <div class="photos" *ngIf="listing.photos.length">
+      <img *ngFor="let photo of listing.photos" [src]="photo.reference" [alt]="listing.title" class="photo" />
+    </div>
   </div>
 
-  <h1>{{ listing.title }}</h1>
-  <p class="owner">
-    Posted by <a class="owner-link" [routerLink]="['/users', listing.ownerUsername]">{{ listing.ownerUsername }}</a>
-  </p>
-  <p class="status" [class.sold]="listing.status === 'SOLD'">{{ listing.status }}</p>
-  <p class="price">{{ listing.price | currency }}</p>
-  <p class="category">{{ categoryLabel() }}</p>
-  <p class="description">{{ listing.description }}</p>
+  <div class="listing-detail__info panel">
+    <span class="badge status" [class.sold]="listing.status === 'SOLD'">{{ listing.status }}</span>
+    <h1>{{ listing.title }}</h1>
+    <p class="price">{{ listing.price | currency }}</p>
+    <span class="badge category">{{ categoryLabel() }}</span>
+    <p class="owner">
+      Posted by <a class="owner-link" [routerLink]="['/users', listing.ownerUsername]">{{ listing.ownerUsername }}</a>
+    </p>
+    <p class="description">{{ listing.description }}</p>
 
-  <button
-    *ngIf="isLoggedIn()"
-    type="button"
-    class="favorite-toggle"
-    [class.favorited]="listing.favorited"
-    (click)="toggleFavorite()"
-  >
-    {{ listing.favorited ? 'Unfavorite' : 'Favorite' }}
-  </button>
-  <p *ngIf="favoriteError" class="favorite-error">{{ favoriteError }}</p>
+    <div class="listing-detail__actions">
+      <button
+        *ngIf="isLoggedIn()"
+        type="button"
+        class="btn btn-secondary favorite-toggle"
+        [class.favorited]="listing.favorited"
+        (click)="toggleFavorite()"
+      >
+        {{ listing.favorited ? 'Unfavorite' : 'Favorite' }}
+      </button>
 
-  <button *ngIf="canEdit()" type="button" class="edit-listing" (click)="edit()">Edit listing</button>
+      <button *ngIf="canBuy()" type="button" class="btn btn-primary buy-listing" (click)="buy()">Buy listing</button>
 
-  <button *ngIf="canDelete()" type="button" class="delete-listing" (click)="delete()">Delete listing</button>
-  <p *ngIf="deleteError" class="delete-error">{{ deleteError }}</p>
+      <button *ngIf="canEdit()" type="button" class="btn btn-secondary edit-listing" (click)="edit()">Edit listing</button>
 
-  <button *ngIf="canBuy()" type="button" class="buy-listing" (click)="buy()">Buy listing</button>
-  <p *ngIf="buyError" class="buy-error">{{ buyError }}</p>
+      <button *ngIf="canDelete()" type="button" class="btn btn-danger delete-listing" (click)="delete()">
+        Delete listing
+      </button>
+    </div>
 
-  <section *ngIf="canManagePhotos()" class="manage-photos">
+    <p *ngIf="favoriteError" class="favorite-error">{{ favoriteError }}</p>
+    <p *ngIf="buyError" class="buy-error">{{ buyError }}</p>
+    <p *ngIf="deleteError" class="delete-error">{{ deleteError }}</p>
+  </div>
+
+  <section *ngIf="canManagePhotos()" class="manage-photos panel">
     <h2>Manage photos</h2>
-    <ul>
+    <ul class="manage-photos__list">
       <li *ngFor="let photo of listing.photos; let i = index">
         <img [src]="photo.reference" [alt]="listing.title" class="photo-thumb" />
-        <button type="button" class="move-photo-up" (click)="movePhoto(i, -1)" [disabled]="i === 0">Move up</button>
-        <button
-          type="button"
-          class="move-photo-down"
-          (click)="movePhoto(i, 1)"
-          [disabled]="i === listing.photos.length - 1"
-        >
-          Move down
-        </button>
-        <button
-          type="button"
-          class="remove-photo"
-          (click)="removePhoto(photo.id)"
-          [disabled]="listing.photos.length <= 1"
-        >
-          Remove
-        </button>
+        <div class="manage-photos__controls">
+          <button type="button" class="btn btn-secondary btn-sm move-photo-up" (click)="movePhoto(i, -1)" [disabled]="i === 0">
+            Move up
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm move-photo-down"
+            (click)="movePhoto(i, 1)"
+            [disabled]="i === listing.photos.length - 1"
+          >
+            Move down
+          </button>
+          <button
+            type="button"
+            class="btn btn-danger btn-sm remove-photo"
+            (click)="removePhoto(photo.id)"
+            [disabled]="listing.photos.length <= 1"
+          >
+            Remove
+          </button>
+        </div>
       </li>
     </ul>
     <p *ngIf="removePhotoError" class="remove-photo-error">{{ removePhotoError }}</p>
     <p *ngIf="reorderError" class="reorder-error">{{ reorderError }}</p>
 
-    <label>
-      Add photo
-      <input
-        type="file"
-        accept="image/*"
-        name="newPhoto"
-        [disabled]="listing.photos.length >= maxPhotos"
-        (change)="onNewPhotoSelected($event)"
-      />
-    </label>
-    <button
-      type="button"
-      class="add-photo"
-      (click)="addPhoto()"
-      [disabled]="!selectedNewPhoto || listing.photos.length >= maxPhotos"
-    >
-      Add photo
-    </button>
+    <div class="manage-photos__add">
+      <label class="field">
+        Add photo
+        <input
+          type="file"
+          accept="image/*"
+          name="newPhoto"
+          [disabled]="listing.photos.length >= maxPhotos"
+          (change)="onNewPhotoSelected($event)"
+        />
+      </label>
+      <button
+        type="button"
+        class="btn btn-secondary add-photo"
+        (click)="addPhoto()"
+        [disabled]="!selectedNewPhoto || listing.photos.length >= maxPhotos"
+      >
+        Add photo
+      </button>
+    </div>
     <p *ngIf="addPhotoError" class="add-photo-error">{{ addPhotoError }}</p>
   </section>
 </section>

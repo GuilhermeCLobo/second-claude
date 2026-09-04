@@ -25,6 +25,7 @@ export class BrowseListingsComponent implements OnInit {
   maxPrice: number | null = null;
   sort: ListingSort = 'NEWEST';
   page = 0;
+  loading = true;
 
   constructor(
     private readonly listingsService: ListingsService,
@@ -93,6 +94,7 @@ export class BrowseListingsComponent implements OnInit {
   }
 
   private load(): void {
+    this.loading = true;
     this.listingsService
       .browse({
         category: this.selectedCategory || undefined,
@@ -106,6 +108,7 @@ export class BrowseListingsComponent implements OnInit {
       .subscribe((result) => {
         this.listings = result.listings;
         this.totalCount = result.totalCount;
+        this.loading = false;
       });
   }
 }

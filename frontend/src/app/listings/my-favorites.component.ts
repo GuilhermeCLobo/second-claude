@@ -13,12 +13,14 @@ import { ListingsService } from './listings.service';
 })
 export class MyFavoritesComponent implements OnInit {
   favoritedListings: Listing[] = [];
+  loading = true;
 
   constructor(private readonly listingsService: ListingsService) {}
 
   ngOnInit(): void {
     this.listingsService.myFavorites().subscribe((listings) => {
       this.favoritedListings = listings;
+      this.loading = false;
     });
   }
 

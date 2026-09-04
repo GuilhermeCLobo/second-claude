@@ -14,6 +14,7 @@ import { UserProfileService } from './user-profile.service';
 export class UserProfileComponent implements OnInit {
   profile: UserProfile | null = null;
   notFound = false;
+  loading = true;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -25,9 +26,11 @@ export class UserProfileComponent implements OnInit {
     this.userProfileService.getProfile(username).subscribe({
       next: (profile) => {
         this.profile = profile;
+        this.loading = false;
       },
       error: () => {
         this.notFound = true;
+        this.loading = false;
       },
     });
   }

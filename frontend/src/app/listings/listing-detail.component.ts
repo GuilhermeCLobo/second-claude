@@ -21,6 +21,7 @@ export class ListingDetailComponent implements OnInit {
   readonly maxPhotos = MAX_PHOTOS;
   listing: Listing | null = null;
   notFound = false;
+  loading = true;
   deleteError = '';
   buyError = '';
   favoriteError = '';
@@ -41,9 +42,11 @@ export class ListingDetailComponent implements OnInit {
     this.listingsService.getById(id).subscribe({
       next: (listing) => {
         this.listing = listing;
+        this.loading = false;
       },
       error: () => {
         this.notFound = true;
+        this.loading = false;
       },
     });
   }

@@ -1,8 +1,14 @@
-<section *ngIf="profile as profile" class="user-profile">
-  <h1>{{ profile.username }}</h1>
+<div class="loading-state" *ngIf="loading">
+  <span class="spinner"></span>
+</div>
 
-  <ul>
-    <li *ngFor="let listing of profile.listings">
+<section *ngIf="profile as profile" class="user-profile">
+  <div class="section-heading">
+    <h1>{{ profile.username }}</h1>
+  </div>
+
+  <ul class="listing-grid" *ngIf="profile.listings.length">
+    <li *ngFor="let listing of profile.listings" class="listing-card">
       <a [routerLink]="['/listings', listing.id]">
         <img *ngIf="listing.photos.length" [src]="listing.photos[0].reference" [alt]="listing.title" class="thumbnail" />
         <span class="title">{{ listing.title }}</span>

@@ -1,18 +1,25 @@
-<header>
-  <nav>
-    <a routerLink="/">Browse</a>
-    <ng-container *ngIf="authService.session() as session; else loggedOut">
-      <a routerLink="/listings/new">Post a listing</a>
-      <a routerLink="/my-listings">My Listings</a>
-      <a routerLink="/my-favorites">My Favorites</a>
-      <span>Logged in as {{ session.username }}</span>
-      <button type="button" (click)="logout()">Log out</button>
-    </ng-container>
-    <ng-template #loggedOut>
-      <a routerLink="/login">Log in</a>
-      <a routerLink="/register">Register</a>
-    </ng-template>
-  </nav>
+<header class="site-header">
+  <div class="site-header__inner">
+    <a routerLink="/" class="brand">Marketplace</a>
+    <nav class="site-nav">
+      <a routerLink="/" class="nav-link">Browse</a>
+      <ng-container *ngIf="authService.session() as session; else loggedOut">
+        <a routerLink="/listings/new" class="nav-link">Post a listing</a>
+        <a routerLink="/my-listings" class="nav-link">My Listings</a>
+        <a routerLink="/my-favorites" class="nav-link">My Favorites</a>
+        <span class="nav-spacer"></span>
+        <span class="nav-user">Logged in as {{ session.username }}</span>
+        <button type="button" class="btn btn-ghost btn-sm" (click)="logout()">Log out</button>
+      </ng-container>
+      <ng-template #loggedOut>
+        <span class="nav-spacer"></span>
+        <a routerLink="/login" class="nav-link">Log in</a>
+        <a routerLink="/register" class="btn btn-primary btn-sm">Register</a>
+      </ng-template>
+    </nav>
+  </div>
 </header>
 
-<router-outlet />
+<main class="page">
+  <router-outlet />
+</main>

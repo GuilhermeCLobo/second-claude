@@ -22,7 +22,7 @@ public class AuthService {
         if (userRepository.existsByUsername(request.username())) {
             throw new DuplicateUsernameException(request.username());
         }
-        User user = new User(request.username(), passwordEncoder.encode(request.password()));
+        User user = new User(request.username(), passwordEncoder.encode(request.password()), request.email());
         User saved = userRepository.save(user);
         return new RegisterResponse(saved.getId(), saved.getUsername());
     }

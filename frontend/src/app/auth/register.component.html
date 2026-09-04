@@ -9,6 +9,11 @@
     <input type="password" formControlName="password" name="password" />
   </label>
 
+  <label>
+    Email
+    <input type="email" formControlName="email" name="email" />
+  </label>
+
   <button type="submit" [disabled]="form.invalid">Register</button>
 
   <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>

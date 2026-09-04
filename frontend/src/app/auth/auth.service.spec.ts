@@ -22,20 +22,52 @@ describe('AuthService', () => {
     localStorage.clear();
   });
 
-  it('posts the username and password to the register endpoint and returns the created user', () => {
+  it('posts the username, password and email to the register endpoint and returns the created user', () => {
     let result: RegisteredUser | undefined;
 
-    service.register('alice', 'correct-horse').subscribe((response) => {
+    service.register('alice', 'correct-horse', 'alice@example.com').subscribe((response) => {
       result = response;
     });
 
     const req = httpMock.expectOne('/api/auth/register');
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ username: 'alice', password: 'correct-horse' });
+    expect(req.request.body).toEqual({ username: 'alice', password: 'correct-horse', email: 'alice@example.com' });
 
     req.flush({ id: 1, username: 'alice' });
 
     expect(result).toEqual({ id: 1, username: 'alice' });
+  });
+
+  it('posts the username to the forgot-password endpoint', () => {
+    let result: { message: string } | undefined;
+
+    service.requestPasswordReset('alice').subscribe((response) => {
+      result = response;
+    });
+
+    const req = httpMock.expectOne('/api/auth/forgot-password');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ username: 'alice' });
+
+    req.flush({ message: 'If that username exists, a password reset email has been sent.' });
+
+    expect(result).toEqual({ message: 'If that username exists, a password reset email has been sent.' });
+  });
+
+  it('posts the token and new password to the reset-password endpoint', () => {
+    let completed = false;
+
+    service.confirmPasswordReset('reset-token', 'new-password1').subscribe(() => {
+      completed = true;
+    });
+
+    const req = httpMock.expectOne('/api/auth/reset-password');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ token: 'reset-token', newPassword: 'new-password1' });
+
+    req.flush(null);
+
+    expect(completed).toBeTrue();
   });
 
   it('logs in, stores the session and reports the user as logged in', () => {

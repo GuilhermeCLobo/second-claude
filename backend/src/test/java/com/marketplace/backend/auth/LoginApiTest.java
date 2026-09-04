@@ -26,7 +26,8 @@ class LoginApiTest {
     private void register(String username, String password) throws Exception {
         mockMvc.perform(post("/api/auth/register")
                         .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(Map.of("username", username, "password", password))))
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "username", username, "password", password, "email", username + "@example.com"))))
                 .andExpect(status().isCreated());
     }
 

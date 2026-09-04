@@ -22,14 +22,17 @@ describe('RegisterComponent', () => {
     httpMock.verify();
   });
 
-  function fillAndSubmit(username: string, password: string): void {
+  function fillAndSubmit(username: string, password: string, email: string): void {
     const usernameInput: HTMLInputElement = fixture.nativeElement.querySelector('input[name="username"]');
     const passwordInput: HTMLInputElement = fixture.nativeElement.querySelector('input[name="password"]');
+    const emailInput: HTMLInputElement = fixture.nativeElement.querySelector('input[name="email"]');
 
     usernameInput.value = username;
     usernameInput.dispatchEvent(new Event('input'));
     passwordInput.value = password;
     passwordInput.dispatchEvent(new Event('input'));
+    emailInput.value = email;
+    emailInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
     const form: HTMLFormElement = fixture.nativeElement.querySelector('form');
@@ -37,9 +40,10 @@ describe('RegisterComponent', () => {
   }
 
   it('shows a success message once registration succeeds', () => {
-    fillAndSubmit('alice', 'correct-horse');
+    fillAndSubmit('alice', 'correct-horse', 'alice@example.com');
 
     const req = httpMock.expectOne('/api/auth/register');
+    expect(req.request.body).toEqual({ username: 'alice', password: 'correct-horse', email: 'alice@example.com' });
     req.flush({ id: 1, username: 'alice' });
     fixture.detectChanges();
 
@@ -48,7 +52,7 @@ describe('RegisterComponent', () => {
   });
 
   it('shows the server error message when the username is already taken', () => {
-    fillAndSubmit('bob', 'correct-horse');
+    fillAndSubmit('bob', 'correct-horse', 'bob@example.com');
 
     const req = httpMock.expectOne('/api/auth/register');
     req.flush({ message: "Username 'bob' is already taken" }, { status: 409, statusText: 'Conflict' });

@@ -6,33 +6,31 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { AuthService } from './auth.service';
 
 @Component({
-  selector: 'app-register',
+  selector: 'app-forgot-password',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
-  templateUrl: './register.component.html',
+  templateUrl: './forgot-password.component.html',
 })
-export class RegisterComponent {
+export class ForgotPasswordComponent {
   readonly form = new FormGroup({
     username: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-    password: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-    email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
   });
 
-  registered = false;
+  submitted = false;
   errorMessage: string | null = null;
 
   constructor(private readonly authService: AuthService) {}
 
   submit(): void {
     this.errorMessage = null;
-    const { username, password, email } = this.form.getRawValue();
+    const { username } = this.form.getRawValue();
 
-    this.authService.register(username, password, email).subscribe({
+    this.authService.requestPasswordReset(username).subscribe({
       next: () => {
-        this.registered = true;
+        this.submitted = true;
       },
       error: (error: HttpErrorResponse) => {
-        this.errorMessage = error.error?.message ?? 'Registration failed. Please try again.';
+        this.errorMessage = error.error?.message ?? 'Something went wrong. Please try again.';
       },
     });
   }

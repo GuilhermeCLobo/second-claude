@@ -51,7 +51,8 @@ class ListingsApiTest {
     private Session registerAndLoginSession(String username) throws Exception {
         mockMvc.perform(post("/api/auth/register")
                 .contentType("application/json")
-                .content(objectMapper.writeValueAsString(Map.of("username", username, "password", "correct-horse"))));
+                .content(objectMapper.writeValueAsString(Map.of(
+                        "username", username, "password", "correct-horse", "email", username + "@example.com"))));
 
         String response = mockMvc.perform(post("/api/auth/login")
                         .contentType("application/json")

@@ -8,14 +8,21 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final AuthService authService;
+    private static final String RESET_REQUESTED_MESSAGE =
+            "If that username exists, a password reset email has been sent.";
 
-    public AuthController(AuthService authService) {
+    private final AuthService authService;
+    private final PasswordResetService passwordResetService;
+
+    public AuthController(AuthService authService, PasswordResetService passwordResetService) {
         this.authService = authService;
+        this.passwordResetService = passwordResetService;
     }
 
     @PostMapping("/register")
@@ -27,5 +34,17 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody RequestPasswordResetRequest request) {
+        passwordResetService.requestReset(request);
+        return ResponseEntity.ok(Map.of("message", RESET_REQUESTED_MESSAGE));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ConfirmPasswordResetRequest request) {
+        passwordResetService.confirmReset(request);
+        return ResponseEntity.ok().build();
     }
 }

@@ -42,8 +42,16 @@ export class AuthService {
     return this.sessionSignal() !== null;
   }
 
-  register(username: string, password: string): Observable<RegisteredUser> {
-    return this.http.post<RegisteredUser>('/api/auth/register', { username, password });
+  register(username: string, password: string, email: string): Observable<RegisteredUser> {
+    return this.http.post<RegisteredUser>('/api/auth/register', { username, password, email });
+  }
+
+  requestPasswordReset(username: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>('/api/auth/forgot-password', { username });
+  }
+
+  confirmPasswordReset(token: string, newPassword: string): Observable<void> {
+    return this.http.post<void>('/api/auth/reset-password', { token, newPassword });
   }
 
   login(username: string, password: string): Observable<AuthSession> {

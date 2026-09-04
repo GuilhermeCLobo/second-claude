@@ -2,6 +2,7 @@ package com.marketplace.backend.listing;
 
 import com.marketplace.backend.photo.PhotoStore;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -41,18 +42,20 @@ public class ListingService {
         return ListingResponse.from(saved);
     }
 
+    @Transactional
     public ListingResponse buy(Long id, Long requesterId) {
         Listing listing = listingRepository.findById(id)
                 .orElseThrow(() -> new ListingNotFoundException(id));
         if (listing.getOwnerId().equals(requesterId)) {
             throw new CannotBuyOwnListingException();
         }
-        if (listing.getStatus() != ListingStatus.ACTIVE) {
+        int updated = listingRepository.markSoldIfActive(id, requesterId);
+        if (updated == 0) {
             throw new ListingNotActiveException();
         }
-        listing.markSold(requesterId);
-        Listing saved = listingRepository.save(listing);
-        return ListingResponse.from(saved);
+        Listing sold = listingRepository.findById(id)
+                .orElseThrow(() -> new ListingNotFoundException(id));
+        return ListingResponse.from(sold);
     }
 
     public void delete(Long id, Long requesterId) {

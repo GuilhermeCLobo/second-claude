@@ -11,8 +11,15 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -293,5 +300,37 @@ class ListingsApiTest {
         mockMvc.perform(get("/api/listings/{id}", listing.getId()))
                 .andExpect(jsonPath("$.status").value("SOLD"))
                 .andExpect(jsonPath("$.buyerId").value(session.userId()));
+    }
+
+    @Test
+    void concurrentBuyAttemptsOnTheSameListingResultInExactlyOneWinner() throws Exception {
+        Session owner = registerAndLoginSession("owen-concurrent");
+        Session buyerA = registerAndLoginSession("buyer-a-concurrent");
+        Session buyerB = registerAndLoginSession("buyer-b-concurrent");
+        Listing listing = listingRepository.save(new Listing("Chair", "Office chair", new BigDecimal("40.00"),
+                Category.FURNITURE, "chair.jpg", owner.userId()));
+
+        Callable<Integer> attemptA = () -> mockMvc.perform(post("/api/listings/{id}/buy", listing.getId())
+                        .header("Authorization", "Bearer " + buyerA.token()))
+                .andReturn().getResponse().getStatus();
+        Callable<Integer> attemptB = () -> mockMvc.perform(post("/api/listings/{id}/buy", listing.getId())
+                        .header("Authorization", "Bearer " + buyerB.token()))
+                .andReturn().getResponse().getStatus();
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<Integer> resultA = executor.submit(attemptA);
+            Future<Integer> resultB = executor.submit(attemptB);
+            int statusA = resultA.get(5, TimeUnit.SECONDS);
+            int statusB = resultB.get(5, TimeUnit.SECONDS);
+
+            assertThat(List.of(statusA, statusB)).containsExactlyInAnyOrder(200, 409);
+        } finally {
+            executor.shutdown();
+        }
+
+        Listing afterRace = listingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(afterRace.getStatus()).isEqualTo(ListingStatus.SOLD);
+        assertThat(afterRace.getBuyerId()).isIn(buyerA.userId(), buyerB.userId());
     }
 }

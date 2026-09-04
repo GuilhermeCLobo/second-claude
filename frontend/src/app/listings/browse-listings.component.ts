@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 import { CATEGORIES, Category } from './category';
 import { Listing } from './listing.model';
@@ -8,7 +9,7 @@ import { ListingsService } from './listings.service';
 @Component({
   selector: 'app-browse-listings',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './browse-listings.component.html',
 })
 export class BrowseListingsComponent implements OnInit {

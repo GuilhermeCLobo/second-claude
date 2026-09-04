@@ -16,4 +16,8 @@ export class ListingsService {
     }
     return this.http.get<Listing[]>('/api/listings', { params });
   }
+
+  getById(id: number): Observable<Listing> {
+    return this.http.get<Listing>(`/api/listings/${id}`);
+  }
 }

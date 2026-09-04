@@ -9,9 +9,11 @@
 
   <ul>
     <li *ngFor="let listing of listings" [class.sold]="listing.status === 'SOLD'">
-      <span class="title">{{ listing.title }}</span>
-      <span class="price">{{ listing.price | currency }}</span>
-      <span class="status" *ngIf="listing.status === 'SOLD'">SOLD</span>
+      <a [routerLink]="['/listings', listing.id]">
+        <span class="title">{{ listing.title }}</span>
+        <span class="price">{{ listing.price | currency }}</span>
+        <span class="status" *ngIf="listing.status === 'SOLD'">SOLD</span>
+      </a>
     </li>
   </ul>
 

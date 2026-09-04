@@ -1,0 +1,11 @@
+<section *ngIf="listing as listing">
+  <img *ngIf="listing.photoReference" [src]="listing.photoReference" [alt]="listing.title" class="photo" />
+
+  <h1>{{ listing.title }}</h1>
+  <p class="status" [class.sold]="listing.status === 'SOLD'">{{ listing.status }}</p>
+  <p class="price">{{ listing.price | currency }}</p>
+  <p class="category">{{ categoryLabel() }}</p>
+  <p class="description">{{ listing.description }}</p>
+</section>
+
+<p *ngIf="notFound" class="not-found">Listing not found.</p>

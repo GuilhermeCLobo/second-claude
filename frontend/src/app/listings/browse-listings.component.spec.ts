@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
+import { provideRouter } from '@angular/router';
 
 import { BrowseListingsComponent } from './browse-listings.component';
 import { Listing } from './listing.model';
@@ -37,7 +38,7 @@ describe('BrowseListingsComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [BrowseListingsComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     });
     fixture = TestBed.createComponent(BrowseListingsComponent);
     httpMock = TestBed.inject(HttpTestingController);

@@ -50,4 +50,27 @@ class ListingsApiTest {
                 .andExpect(jsonPath("$[*].title", org.hamcrest.Matchers.hasItem("Laptop")))
                 .andExpect(jsonPath("$[*].title", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("Desk"))));
     }
+
+    @Test
+    void gettingAnExistingListingByIdReturnsItsFullDetail() throws Exception {
+        Listing listing = listingRepository.save(new Listing("Bike", "Road bike", new BigDecimal("150.00"),
+                Category.VEHICLES, "bike.jpg", 1L));
+
+        mockMvc.perform(get("/api/listings/{id}", listing.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(listing.getId()))
+                .andExpect(jsonPath("$.title").value("Bike"))
+                .andExpect(jsonPath("$.description").value("Road bike"))
+                .andExpect(jsonPath("$.price").value(150.00))
+                .andExpect(jsonPath("$.category").value("VEHICLES"))
+                .andExpect(jsonPath("$.photoReference").value("bike.jpg"))
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+    }
+
+    @Test
+    void gettingAListingByAnUnknownIdReturnsNotFound() throws Exception {
+        mockMvc.perform(get("/api/listings/{id}", 999999))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").exists());
+    }
 }

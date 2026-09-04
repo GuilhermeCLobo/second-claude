@@ -19,4 +19,10 @@ public class ListingService {
                 : listingRepository.findByCategory(category);
         return listings.stream().map(ListingResponse::from).toList();
     }
+
+    public ListingResponse getById(Long id) {
+        Listing listing = listingRepository.findById(id)
+                .orElseThrow(() -> new ListingNotFoundException(id));
+        return ListingResponse.from(listing);
+    }
 }

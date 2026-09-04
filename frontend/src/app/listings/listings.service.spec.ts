@@ -44,4 +44,28 @@ describe('ListingsService', () => {
 
     req.flush([]);
   });
+
+  it('fetches a single listing by id', () => {
+    let result: Listing | undefined;
+    const listing: Listing = {
+      id: 1,
+      title: 'Bike',
+      description: 'Road bike',
+      price: 150,
+      category: 'VEHICLES',
+      photoReference: 'bike.jpg',
+      status: 'ACTIVE',
+      ownerId: 1,
+      buyerId: null,
+    };
+
+    service.getById(1).subscribe((response) => {
+      result = response;
+    });
+
+    const req = httpMock.expectOne((request) => request.url === '/api/listings/1');
+    req.flush(listing);
+
+    expect(result).toEqual(listing);
+  });
 });

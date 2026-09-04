@@ -1,0 +1,19 @@
+<section>
+  <label>
+    Category
+    <select (change)="onCategoryChange($event)">
+      <option value="">All categories</option>
+      <option *ngFor="let category of categories" [value]="category.value">{{ category.label }}</option>
+    </select>
+  </label>
+
+  <ul>
+    <li *ngFor="let listing of listings" [class.sold]="listing.status === 'SOLD'">
+      <span class="title">{{ listing.title }}</span>
+      <span class="price">{{ listing.price | currency }}</span>
+      <span class="status" *ngIf="listing.status === 'SOLD'">SOLD</span>
+    </li>
+  </ul>
+
+  <p *ngIf="listings.length === 0" class="empty">No listings found.</p>
+</section>

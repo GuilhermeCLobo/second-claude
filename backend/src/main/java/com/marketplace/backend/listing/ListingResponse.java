@@ -13,10 +13,11 @@ public record ListingResponse(
         List<PhotoResponse> photos,
         ListingStatus status,
         Long ownerId,
+        String ownerUsername,
         Long buyerId,
         boolean favorited
 ) {
-    public static ListingResponse from(Listing listing, boolean favorited) {
+    public static ListingResponse from(Listing listing, boolean favorited, String ownerUsername) {
         List<PhotoResponse> photos = listing.getPhotos().stream()
                 .sorted(Comparator.comparingInt(Photo::getSortOrder))
                 .map(PhotoResponse::from)
@@ -30,6 +31,7 @@ public record ListingResponse(
                 photos,
                 listing.getStatus(),
                 listing.getOwnerId(),
+                ownerUsername,
                 listing.getBuyerId(),
                 favorited
         );

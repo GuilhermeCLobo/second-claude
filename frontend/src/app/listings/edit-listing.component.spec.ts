@@ -19,6 +19,7 @@ describe('EditListingComponent', () => {
     photos: [{ id: 1, reference: '/api/photos/camera.jpg' }],
     status: 'ACTIVE',
     ownerId: 1,
+    ownerUsername: 'owner',
     buyerId: null,
     favorited: false,
   };

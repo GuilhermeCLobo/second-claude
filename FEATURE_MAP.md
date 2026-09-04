@@ -7,6 +7,8 @@
 - Listing domain exceptions/status codes — `listing/ListingExceptionHandler.java`
 - Auth (register/login/logout/session) — `auth/` (multiple files, no single entry point)
 - Password reset flow — `auth/` (look for ResetToken/PasswordReset classes)
+- Favorites (favorite/unfavorite/mine) — `favorite/FavoriteController.java` (routes), `favorite/FavoriteService.java` (logic)
+- User profile (public, by username; owner username on listing responses) — `user/UserController.java` (route), `user/ProfileService.java` (logic), `user/UserRepository.java` (username lookups used by listing/favorite services)
 
 ## Frontend (`frontend/src/app/`)
 
@@ -15,7 +17,9 @@
 - Create a listing (multi-photo upload) — `listings/create-listing.component.ts`
 - Edit a listing — `listings/edit-listing.component.ts`
 - My listings (posted/bought) — `listings/my-listings.component.ts`
-- Listings HTTP calls (incl. photo add/remove/reorder) — `listings/listings.service.ts`
+- My favorites — `listings/my-favorites.component.ts`
+- Listings HTTP calls (incl. photo add/remove/reorder, favorite/unfavorite) — `listings/listings.service.ts`
+- User profile page (by username) — `profile/user-profile.component.ts`
 - Routes — `app.routes.ts`
 
 ## Docs

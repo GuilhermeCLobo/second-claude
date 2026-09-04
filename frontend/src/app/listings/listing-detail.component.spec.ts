@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 
 import { AUTH_SESSION_STORAGE_KEY } from '../auth/auth.service';
 import { ListingDetailComponent } from './listing-detail.component';
@@ -21,18 +21,18 @@ describe('ListingDetailComponent', () => {
     photos: [{ id: 1, reference: 'bike.jpg' }],
     status: 'ACTIVE',
     ownerId: 1,
+    ownerUsername: 'owner',
     buyerId: null,
     favorited: false,
   };
 
   function setUp(): void {
-    router = jasmine.createSpyObj<Router>('Router', ['navigateByUrl', 'navigate']);
     TestBed.configureTestingModule({
       imports: [ListingDetailComponent],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: Router, useValue: router },
+        provideRouter([]),
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap({ id: '1' }) } },
@@ -41,6 +41,9 @@ describe('ListingDetailComponent', () => {
     });
     fixture = TestBed.createComponent(ListingDetailComponent);
     httpMock = TestBed.inject(HttpTestingController);
+    router = TestBed.inject(Router) as unknown as jasmine.SpyObj<Router>;
+    spyOn(router, 'navigate');
+    spyOn(router, 'navigateByUrl');
   }
 
   function setUpAsLoggedInUser(userId: number): void {
@@ -72,6 +75,16 @@ describe('ListingDetailComponent', () => {
     expect(element.querySelector('.description')?.textContent).toContain('Road bike');
     expect(element.querySelector('.status')?.textContent).toContain('ACTIVE');
     expect(element.querySelector('img')?.getAttribute('src')).toBe('bike.jpg');
+  });
+
+  it("links to the owner's profile", () => {
+    fixture.detectChanges();
+    httpMock.expectOne((request) => request.url === '/api/listings/1').flush(listing);
+    fixture.detectChanges();
+
+    const link: HTMLAnchorElement = fixture.nativeElement.querySelector('.owner-link');
+    expect(link.textContent).toContain('owner');
+    expect(link.getAttribute('href')).toBe('/users/owner');
   });
 
   it('shows a not-found message when the listing does not exist', () => {

@@ -4,6 +4,9 @@
   </div>
 
   <h1>{{ listing.title }}</h1>
+  <p class="owner">
+    Posted by <a class="owner-link" [routerLink]="['/users', listing.ownerUsername]">{{ listing.ownerUsername }}</a>
+  </p>
   <p class="status" [class.sold]="listing.status === 'SOLD'">{{ listing.status }}</p>
   <p class="price">{{ listing.price | currency }}</p>
   <p class="category">{{ categoryLabel() }}</p>

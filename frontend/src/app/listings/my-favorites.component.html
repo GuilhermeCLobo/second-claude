@@ -8,6 +8,7 @@
         <span class="price">{{ listing.price | currency }}</span>
         <span class="status" *ngIf="listing.status === 'SOLD'">SOLD</span>
       </a>
+      <a class="owner-link" [routerLink]="['/users', listing.ownerUsername]">{{ listing.ownerUsername }}</a>
       <button type="button" class="unfavorite" (click)="unfavorite(listing)">Unfavorite</button>
     </li>
   </ul>

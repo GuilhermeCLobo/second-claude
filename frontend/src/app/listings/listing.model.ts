@@ -16,6 +16,7 @@ export interface Listing {
   photos: ListingPhoto[];
   status: ListingStatus;
   ownerId: number;
+  ownerUsername: string;
   buyerId: number | null;
   favorited: boolean;
 }

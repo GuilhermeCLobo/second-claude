@@ -22,6 +22,7 @@
         <span class="title">{{ listing.title }}</span>
         <span class="price">{{ listing.price | currency }}</span>
       </a>
+      <a class="owner-link" [routerLink]="['/users', listing.ownerUsername]">{{ listing.ownerUsername }}</a>
     </li>
   </ul>
   <p *ngIf="boughtListings.length === 0" class="empty">You haven't bought any listings yet.</p>

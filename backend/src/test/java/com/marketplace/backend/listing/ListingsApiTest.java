@@ -322,17 +322,20 @@ class ListingsApiTest {
                 .andExpect(jsonPath("$.title").value("Vintage Camera"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.ownerId").exists())
+                .andExpect(jsonPath("$.ownerUsername").value("grace"))
                 .andExpect(jsonPath("$.photos[0].reference").value(org.hamcrest.Matchers.startsWith("/api/photos/")))
                 .andReturn().getResponse().getContentAsString();
         Long id = objectMapper.readTree(response).get("id").asLong();
         String photoReference = objectMapper.readTree(response).get("photos").get(0).get("reference").asText();
 
         mockMvc.perform(get("/api/listings"))
-                .andExpect(jsonPath("$.listings[?(@.id == " + id + ")].title").value("Vintage Camera"));
+                .andExpect(jsonPath("$.listings[?(@.id == " + id + ")].title").value("Vintage Camera"))
+                .andExpect(jsonPath("$.listings[?(@.id == " + id + ")].ownerUsername").value("grace"));
 
         mockMvc.perform(get("/api/listings/{id}", id))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("Vintage Camera"));
+                .andExpect(jsonPath("$.title").value("Vintage Camera"))
+                .andExpect(jsonPath("$.ownerUsername").value("grace"));
 
         mockMvc.perform(get(photoReference))
                 .andExpect(status().isOk())

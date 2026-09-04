@@ -12,6 +12,8 @@ public interface ListingRepository extends JpaRepository<Listing, Long>, JpaSpec
 
     List<Listing> findByOwnerId(Long ownerId);
 
+    List<Listing> findByOwnerIdAndStatus(Long ownerId, ListingStatus status);
+
     List<Listing> findByBuyerId(Long buyerId);
 
     @Modifying(clearAutomatically = true)

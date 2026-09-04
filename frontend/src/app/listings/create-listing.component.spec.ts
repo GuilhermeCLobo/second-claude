@@ -82,6 +82,7 @@ describe('CreateListingComponent', () => {
       photos: [{ id: 1, reference: '/api/photos/camera.jpg' }],
       status: 'ACTIVE',
       ownerId: 1,
+      ownerUsername: 'owner',
       buyerId: null,
       favorited: false,
     };
@@ -144,6 +145,7 @@ describe('CreateListingComponent', () => {
       photos: [{ id: 1, reference: '/api/photos/photo-0.jpg' }],
       status: 'ACTIVE',
       ownerId: 1,
+      ownerUsername: 'owner',
       buyerId: null,
       favorited: false,
     };

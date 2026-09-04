@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../auth/auth.service';
 import { CATEGORIES } from './category';
@@ -13,7 +13,7 @@ const MAX_PHOTOS = 6;
 @Component({
   selector: 'app-listing-detail',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './listing-detail.component.html',
 })
 export class ListingDetailComponent implements OnInit {

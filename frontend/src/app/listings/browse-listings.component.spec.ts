@@ -21,6 +21,7 @@ describe('BrowseListingsComponent', () => {
       photos: [{ id: 1, reference: 'bike.jpg' }],
       status: 'ACTIVE',
       ownerId: 1,
+      ownerUsername: 'owner',
       buyerId: null,
       favorited: false,
     },
@@ -33,6 +34,7 @@ describe('BrowseListingsComponent', () => {
       photos: [{ id: 2, reference: 'sofa.jpg' }],
       status: 'SOLD',
       ownerId: 1,
+      ownerUsername: 'owner',
       buyerId: 2,
       favorited: false,
     },
@@ -82,6 +84,19 @@ describe('BrowseListingsComponent', () => {
     const thumbnails: NodeListOf<HTMLImageElement> = fixture.nativeElement.querySelectorAll('img.thumbnail');
     expect(thumbnails.length).toBe(2);
     expect(thumbnails[0].src).toContain('bike.jpg');
+  });
+
+  it("links each listing card through to its owner's profile", () => {
+    fixture.detectChanges();
+    httpMock
+      .expectOne((request) => request.url === '/api/listings')
+      .flush({ listings, totalCount: 2 });
+    fixture.detectChanges();
+
+    const ownerLinks: NodeListOf<HTMLAnchorElement> = fixture.nativeElement.querySelectorAll('.owner-link');
+    expect(ownerLinks.length).toBe(2);
+    expect(ownerLinks[0].textContent).toContain('owner');
+    expect(ownerLinks[0].getAttribute('href')).toBe('/users/owner');
   });
 
   it('refetches with a category query param when the filter changes', () => {

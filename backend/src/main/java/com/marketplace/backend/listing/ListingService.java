@@ -2,6 +2,7 @@ package com.marketplace.backend.listing;
 
 import com.marketplace.backend.favorite.FavoriteRepository;
 import com.marketplace.backend.photo.PhotoStore;
+import com.marketplace.backend.user.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -28,12 +29,14 @@ public class ListingService {
     private final ListingRepository listingRepository;
     private final PhotoStore photoStore;
     private final FavoriteRepository favoriteRepository;
+    private final UserRepository userRepository;
 
     public ListingService(ListingRepository listingRepository, PhotoStore photoStore,
-                           FavoriteRepository favoriteRepository) {
+                           FavoriteRepository favoriteRepository, UserRepository userRepository) {
         this.listingRepository = listingRepository;
         this.photoStore = photoStore;
         this.favoriteRepository = favoriteRepository;
+        this.userRepository = userRepository;
     }
 
     public BrowseListingsResponse browse(Category category, String search, BigDecimal minPrice, BigDecimal maxPrice,
@@ -50,7 +53,9 @@ public class ListingService {
         Page<Listing> result = listingRepository.findAll(specification, PageRequest.of(pageNumber, pageSize, sortFor(sort)));
         Set<Long> favoritedIds = favoritedListingIds(
                 result.getContent().stream().map(Listing::getId).toList(), requesterId);
-        return BrowseListingsResponse.from(result, favoritedIds);
+        Map<Long, String> ownerUsernames = userRepository.usernamesByIds(
+                result.getContent().stream().map(Listing::getOwnerId).toList());
+        return BrowseListingsResponse.from(result, favoritedIds, ownerUsernames);
     }
 
     private Sort sortFor(ListingSortOption sort) {
@@ -65,19 +70,27 @@ public class ListingService {
     public ListingResponse getById(Long id, Long requesterId) {
         Listing listing = listingRepository.findById(id)
                 .orElseThrow(() -> new ListingNotFoundException(id));
-        return ListingResponse.from(listing, isFavorited(id, requesterId));
+        return ListingResponse.from(listing, isFavorited(id, requesterId), userRepository.usernameById(listing.getOwnerId()));
     }
 
     public List<ListingResponse> myPosted(Long ownerId) {
         List<Listing> listings = listingRepository.findByOwnerId(ownerId);
         Set<Long> favoritedIds = favoritedListingIds(listings.stream().map(Listing::getId).toList(), ownerId);
-        return listings.stream().map(listing -> ListingResponse.from(listing, favoritedIds.contains(listing.getId()))).toList();
+        String ownerUsername = userRepository.usernameById(ownerId);
+        return listings.stream()
+                .map(listing -> ListingResponse.from(listing, favoritedIds.contains(listing.getId()), ownerUsername))
+                .toList();
     }
 
     public List<ListingResponse> myBought(Long buyerId) {
         List<Listing> listings = listingRepository.findByBuyerId(buyerId);
         Set<Long> favoritedIds = favoritedListingIds(listings.stream().map(Listing::getId).toList(), buyerId);
-        return listings.stream().map(listing -> ListingResponse.from(listing, favoritedIds.contains(listing.getId()))).toList();
+        Map<Long, String> ownerUsernames = userRepository.usernamesByIds(
+                listings.stream().map(Listing::getOwnerId).toList());
+        return listings.stream()
+                .map(listing -> ListingResponse.from(listing, favoritedIds.contains(listing.getId()),
+                        ownerUsernames.get(listing.getOwnerId())))
+                .toList();
     }
 
     public ListingResponse create(CreateListingRequest request, MultipartFile photo, Long ownerId) {
@@ -88,7 +101,7 @@ public class ListingService {
                 request.category(), ownerId);
         listing.addPhoto(new Photo(listing, storeReference(photo), 0));
         Listing saved = listingRepository.save(listing);
-        return ListingResponse.from(saved, false);
+        return ListingResponse.from(saved, false, userRepository.usernameById(ownerId));
     }
 
     public ListingResponse buy(Long id, Long requesterId) {
@@ -103,14 +116,14 @@ public class ListingService {
         }
         Listing sold = listingRepository.findById(id)
                 .orElseThrow(() -> new ListingNotFoundException(id));
-        return ListingResponse.from(sold, isFavorited(id, requesterId));
+        return ListingResponse.from(sold, isFavorited(id, requesterId), userRepository.usernameById(sold.getOwnerId()));
     }
 
     public ListingResponse edit(Long id, CreateListingRequest request, Long requesterId) {
         Listing listing = ownedActiveListing(id, requesterId);
         listing.update(request.title(), request.description(), request.price(), request.category());
         Listing saved = listingRepository.save(listing);
-        return ListingResponse.from(saved, isFavorited(id, requesterId));
+        return ListingResponse.from(saved, isFavorited(id, requesterId), userRepository.usernameById(saved.getOwnerId()));
     }
 
     public void delete(Long id, Long requesterId) {
@@ -129,7 +142,7 @@ public class ListingService {
         }
         listing.addPhoto(new Photo(listing, storeReference(photo), listing.getPhotos().size()));
         Listing saved = listingRepository.save(listing);
-        return ListingResponse.from(saved, isFavorited(id, requesterId));
+        return ListingResponse.from(saved, isFavorited(id, requesterId), userRepository.usernameById(saved.getOwnerId()));
     }
 
     public ListingResponse removePhoto(Long id, Long photoId, Long requesterId) {
@@ -143,7 +156,7 @@ public class ListingService {
                 .orElseThrow(() -> new ListingPhotoNotFoundException(photoId));
         listing.removePhoto(photo);
         Listing saved = listingRepository.save(listing);
-        return ListingResponse.from(saved, isFavorited(id, requesterId));
+        return ListingResponse.from(saved, isFavorited(id, requesterId), userRepository.usernameById(saved.getOwnerId()));
     }
 
     public ListingResponse reorderPhotos(Long id, List<Long> photoIds, Long requesterId) {
@@ -158,7 +171,7 @@ public class ListingService {
             photosById.get(photoIds.get(i)).setSortOrder(i);
         }
         Listing saved = listingRepository.save(listing);
-        return ListingResponse.from(saved, isFavorited(id, requesterId));
+        return ListingResponse.from(saved, isFavorited(id, requesterId), userRepository.usernameById(saved.getOwnerId()));
     }
 
     private Listing ownedActiveListing(Long id, Long requesterId) {

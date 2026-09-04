@@ -19,6 +19,7 @@ describe('MyListingsComponent', () => {
     photos: [{ id: 1, reference: 'bike.jpg' }],
     status: 'ACTIVE',
     ownerId: 1,
+    ownerUsername: 'owner',
     buyerId: null,
     favorited: false,
   };
@@ -32,6 +33,7 @@ describe('MyListingsComponent', () => {
     photos: [{ id: 2, reference: 'sofa.jpg' }],
     status: 'SOLD',
     ownerId: 2,
+    ownerUsername: 'owner',
     buyerId: 1,
     favorited: false,
   };

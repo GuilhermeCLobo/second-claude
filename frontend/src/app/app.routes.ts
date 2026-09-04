@@ -11,6 +11,7 @@ import { EditListingComponent } from './listings/edit-listing.component';
 import { ListingDetailComponent } from './listings/listing-detail.component';
 import { MyFavoritesComponent } from './listings/my-favorites.component';
 import { MyListingsComponent } from './listings/my-listings.component';
+import { UserProfileComponent } from './profile/user-profile.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -21,6 +22,7 @@ export const routes: Routes = [
   { path: 'listings/:id/edit', component: EditListingComponent, canActivate: [authGuard] },
   { path: 'my-listings', component: MyListingsComponent, canActivate: [authGuard] },
   { path: 'my-favorites', component: MyFavoritesComponent, canActivate: [authGuard] },
+  { path: 'users/:username', component: UserProfileComponent },
   { path: 'listings/:id', component: ListingDetailComponent },
   { path: '', component: BrowseListingsComponent },
 ];

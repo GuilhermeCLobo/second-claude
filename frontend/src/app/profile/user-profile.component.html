@@ -1,0 +1,17 @@
+<section *ngIf="profile as profile" class="user-profile">
+  <h1>{{ profile.username }}</h1>
+
+  <ul>
+    <li *ngFor="let listing of profile.listings">
+      <a [routerLink]="['/listings', listing.id]">
+        <img *ngIf="listing.photos.length" [src]="listing.photos[0].reference" [alt]="listing.title" class="thumbnail" />
+        <span class="title">{{ listing.title }}</span>
+        <span class="price">{{ listing.price | currency }}</span>
+      </a>
+    </li>
+  </ul>
+
+  <p *ngIf="profile.listings.length === 0" class="empty">No active listings.</p>
+</section>
+
+<p *ngIf="notFound" class="not-found">User not found.</p>

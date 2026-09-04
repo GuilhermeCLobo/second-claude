@@ -78,6 +78,7 @@ describe('ListingsService', () => {
       photos: [{ id: 1, reference: '/api/photos/camera.jpg' }],
       status: 'ACTIVE',
       ownerId: 1,
+      ownerUsername: 'owner',
       buyerId: null,
       favorited: false,
     };
@@ -118,6 +119,7 @@ describe('ListingsService', () => {
       photos: [{ id: 1, reference: 'bike.jpg' }],
       status: 'ACTIVE',
       ownerId: 1,
+      ownerUsername: 'owner',
       buyerId: null,
       favorited: false,
     };
@@ -156,6 +158,7 @@ describe('ListingsService', () => {
       photos: [{ id: 1, reference: 'bike.jpg' }],
       status: 'SOLD',
       ownerId: 2,
+      ownerUsername: 'owner',
       buyerId: 1,
       favorited: false,
     };
@@ -181,6 +184,7 @@ describe('ListingsService', () => {
       photos: [{ id: 1, reference: 'bike.jpg' }, { id: 2, reference: 'bike-2.jpg' }],
       status: 'ACTIVE',
       ownerId: 1,
+      ownerUsername: 'owner',
       buyerId: null,
       favorited: false,
     };
@@ -209,6 +213,7 @@ describe('ListingsService', () => {
       photos: [{ id: 1, reference: 'bike.jpg' }],
       status: 'ACTIVE',
       ownerId: 1,
+      ownerUsername: 'owner',
       buyerId: null,
       favorited: false,
     };
@@ -236,6 +241,7 @@ describe('ListingsService', () => {
       photos: [{ id: 2, reference: 'bike-2.jpg' }, { id: 1, reference: 'bike.jpg' }],
       status: 'ACTIVE',
       ownerId: 1,
+      ownerUsername: 'owner',
       buyerId: null,
       favorited: false,
     };
@@ -264,6 +270,7 @@ describe('ListingsService', () => {
       photos: [{ id: 1, reference: 'bike.jpg' }],
       status: 'ACTIVE',
       ownerId: 2,
+      ownerUsername: 'owner',
       buyerId: null,
       favorited: true,
     };
@@ -306,6 +313,7 @@ describe('ListingsService', () => {
       photos: [{ id: 1, reference: 'bike.jpg' }],
       status: 'ACTIVE',
       ownerId: 2,
+      ownerUsername: 'owner',
       buyerId: null,
       favorited: true,
     };

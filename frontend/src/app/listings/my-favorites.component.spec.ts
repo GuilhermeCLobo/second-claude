@@ -19,6 +19,7 @@ describe('MyFavoritesComponent', () => {
     photos: [{ id: 1, reference: 'bike.jpg' }],
     status: 'ACTIVE',
     ownerId: 2,
+    ownerUsername: 'owner',
     buyerId: null,
     favorited: true,
   };

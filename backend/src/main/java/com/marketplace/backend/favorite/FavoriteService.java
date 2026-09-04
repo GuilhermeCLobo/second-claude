@@ -4,6 +4,7 @@ import com.marketplace.backend.listing.Listing;
 import com.marketplace.backend.listing.ListingNotFoundException;
 import com.marketplace.backend.listing.ListingRepository;
 import com.marketplace.backend.listing.ListingResponse;
+import com.marketplace.backend.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,10 +18,13 @@ public class FavoriteService {
 
     private final FavoriteRepository favoriteRepository;
     private final ListingRepository listingRepository;
+    private final UserRepository userRepository;
 
-    public FavoriteService(FavoriteRepository favoriteRepository, ListingRepository listingRepository) {
+    public FavoriteService(FavoriteRepository favoriteRepository, ListingRepository listingRepository,
+                            UserRepository userRepository) {
         this.favoriteRepository = favoriteRepository;
         this.listingRepository = listingRepository;
+        this.userRepository = userRepository;
     }
 
     public ListingResponse addFavorite(Long listingId, Long userId) {
@@ -29,7 +33,7 @@ public class FavoriteService {
         if (!favoriteRepository.existsByUserIdAndListingId(userId, listingId)) {
             favoriteRepository.save(new Favorite(userId, listingId));
         }
-        return ListingResponse.from(listing, true);
+        return ListingResponse.from(listing, true, userRepository.usernameById(listing.getOwnerId()));
     }
 
     public void removeFavorite(Long listingId, Long userId) {
@@ -43,8 +47,13 @@ public class FavoriteService {
                 .findAllById(favorites.stream().map(Favorite::getListingId).toList())
                 .stream()
                 .collect(Collectors.toMap(Listing::getId, listing -> listing));
+        Map<Long, String> ownerUsernames = userRepository.usernamesByIds(
+                listingsById.values().stream().map(Listing::getOwnerId).toList());
         return favorites.stream()
-                .map(favorite -> ListingResponse.from(listingsById.get(favorite.getListingId()), true))
+                .map(favorite -> {
+                    Listing listing = listingsById.get(favorite.getListingId());
+                    return ListingResponse.from(listing, true, ownerUsernames.get(listing.getOwnerId()));
+                })
                 .toList();
     }
 }

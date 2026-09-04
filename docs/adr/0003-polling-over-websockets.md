@@ -1,0 +1,3 @@
+# Polling instead of WebSockets for messaging and notifications
+
+Messaging and notifications deliver updates via the frontend polling the existing REST endpoints on an interval, not a WebSocket/STOMP real-time channel. We chose this to avoid the added infrastructure (a persistent-connection server, reconnect/backoff handling, a second protocol to test) for a learning project where the UX difference between "arrives instantly" and "arrives within a few seconds of polling" isn't worth that cost. The trade-off is real-time feel and server load at scale — if this ever needs true low-latency delivery, both features' endpoints are plain REST, so a WebSocket push layer can be added later without changing the underlying data model.

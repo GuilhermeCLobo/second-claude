@@ -1,0 +1,3 @@
+# Photo management uses dedicated endpoints, not the listing-edit full-replace
+
+Listing editing (title/description/price/category) is a full-replace PUT, but photos are managed through separate add-one/remove-one/reorder endpoints rather than being included in that same full-replace payload. We chose this specifically because photos are file uploads: folding them into the text-field edit would force re-uploading every photo just to fix a price typo, which is both bad UX and wasteful I/O. The trade-off is two different update styles on the same entity (full-replace for text fields, incremental for photos) instead of one uniform edit contract — a future reader editing the Listing API should expect this split rather than assume PUT covers everything.

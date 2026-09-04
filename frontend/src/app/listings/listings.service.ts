@@ -5,6 +5,13 @@ import { Observable } from 'rxjs';
 import { Category } from './category';
 import { Listing } from './listing.model';
 
+export interface CreateListingRequest {
+  title: string;
+  description: string;
+  price: number;
+  category: Category;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ListingsService {
   constructor(private readonly http: HttpClient) {}
@@ -19,5 +26,9 @@ export class ListingsService {
 
   getById(id: number): Observable<Listing> {
     return this.http.get<Listing>(`/api/listings/${id}`);
+  }
+
+  create(request: CreateListingRequest): Observable<Listing> {
+    return this.http.post<Listing>('/api/listings', request);
   }
 }

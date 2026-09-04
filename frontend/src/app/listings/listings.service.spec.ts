@@ -45,6 +45,38 @@ describe('ListingsService', () => {
     req.flush([]);
   });
 
+  it('posts a new listing', () => {
+    let result: Listing | undefined;
+    const listing: Listing = {
+      id: 3,
+      title: 'Camera',
+      description: 'Digital camera',
+      price: 200,
+      category: 'ELECTRONICS',
+      photoReference: null,
+      status: 'ACTIVE',
+      ownerId: 1,
+      buyerId: null,
+    };
+
+    service
+      .create({ title: 'Camera', description: 'Digital camera', price: 200, category: 'ELECTRONICS' })
+      .subscribe((response) => {
+        result = response;
+      });
+
+    const req = httpMock.expectOne((request) => request.url === '/api/listings' && request.method === 'POST');
+    expect(req.request.body).toEqual({
+      title: 'Camera',
+      description: 'Digital camera',
+      price: 200,
+      category: 'ELECTRONICS',
+    });
+    req.flush(listing);
+
+    expect(result).toEqual(listing);
+  });
+
   it('fetches a single listing by id', () => {
     let result: Listing | undefined;
     const listing: Listing = {

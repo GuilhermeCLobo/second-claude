@@ -2,6 +2,7 @@
   <nav>
     <a routerLink="/">Browse</a>
     <ng-container *ngIf="authService.session() as session; else loggedOut">
+      <a routerLink="/listings/new">Post a listing</a>
       <span>Logged in as {{ session.username }}</span>
       <button type="button" (click)="logout()">Log out</button>
     </ng-container>

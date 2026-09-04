@@ -9,6 +9,17 @@
   <p class="category">{{ categoryLabel() }}</p>
   <p class="description">{{ listing.description }}</p>
 
+  <button
+    *ngIf="isLoggedIn()"
+    type="button"
+    class="favorite-toggle"
+    [class.favorited]="listing.favorited"
+    (click)="toggleFavorite()"
+  >
+    {{ listing.favorited ? 'Unfavorite' : 'Favorite' }}
+  </button>
+  <p *ngIf="favoriteError" class="favorite-error">{{ favoriteError }}</p>
+
   <button *ngIf="canEdit()" type="button" class="edit-listing" (click)="edit()">Edit listing</button>
 
   <button *ngIf="canDelete()" type="button" class="delete-listing" (click)="delete()">Delete listing</button>

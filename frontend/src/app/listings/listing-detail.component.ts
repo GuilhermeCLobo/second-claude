@@ -23,6 +23,7 @@ export class ListingDetailComponent implements OnInit {
   notFound = false;
   deleteError = '';
   buyError = '';
+  favoriteError = '';
   addPhotoError = '';
   removePhotoError = '';
   reorderError = '';
@@ -111,6 +112,38 @@ export class ListingDetailComponent implements OnInit {
         this.buyError = 'Could not buy this listing.';
       },
     });
+  }
+
+  isLoggedIn(): boolean {
+    return this.authService.isLoggedIn();
+  }
+
+  toggleFavorite(): void {
+    if (!this.listing) {
+      return;
+    }
+    this.favoriteError = '';
+    if (this.listing.favorited) {
+      this.listingsService.unfavorite(this.listing.id).subscribe({
+        next: () => {
+          if (this.listing) {
+            this.listing.favorited = false;
+          }
+        },
+        error: () => {
+          this.favoriteError = 'Could not update favorite.';
+        },
+      });
+    } else {
+      this.listingsService.favorite(this.listing.id).subscribe({
+        next: (listing) => {
+          this.listing = listing;
+        },
+        error: () => {
+          this.favoriteError = 'Could not update favorite.';
+        },
+      });
+    }
   }
 
   onNewPhotoSelected(event: Event): void {

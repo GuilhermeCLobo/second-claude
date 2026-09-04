@@ -20,6 +20,7 @@ describe('EditListingComponent', () => {
     status: 'ACTIVE',
     ownerId: 1,
     buyerId: null,
+    favorited: false,
   };
 
   function setUp(): void {

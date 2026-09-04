@@ -1,5 +1,6 @@
 package com.marketplace.backend.listing;
 
+import com.marketplace.backend.favorite.FavoriteRepository;
 import com.marketplace.backend.photo.PhotoStore;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,14 +27,17 @@ public class ListingService {
 
     private final ListingRepository listingRepository;
     private final PhotoStore photoStore;
+    private final FavoriteRepository favoriteRepository;
 
-    public ListingService(ListingRepository listingRepository, PhotoStore photoStore) {
+    public ListingService(ListingRepository listingRepository, PhotoStore photoStore,
+                           FavoriteRepository favoriteRepository) {
         this.listingRepository = listingRepository;
         this.photoStore = photoStore;
+        this.favoriteRepository = favoriteRepository;
     }
 
     public BrowseListingsResponse browse(Category category, String search, BigDecimal minPrice, BigDecimal maxPrice,
-                                          ListingSortOption sort, int page, int size) {
+                                          ListingSortOption sort, int page, int size, Long requesterId) {
         Specification<Listing> specification = ListingSpecifications.and(
                 ListingSpecifications.statusIs(ListingStatus.ACTIVE),
                 ListingSpecifications.categoryIs(category),
@@ -44,7 +48,9 @@ public class ListingService {
         int pageSize = Math.min(size < 1 ? DEFAULT_PAGE_SIZE : size, MAX_PAGE_SIZE);
         int pageNumber = Math.max(page, 0);
         Page<Listing> result = listingRepository.findAll(specification, PageRequest.of(pageNumber, pageSize, sortFor(sort)));
-        return BrowseListingsResponse.from(result);
+        Set<Long> favoritedIds = favoritedListingIds(
+                result.getContent().stream().map(Listing::getId).toList(), requesterId);
+        return BrowseListingsResponse.from(result, favoritedIds);
     }
 
     private Sort sortFor(ListingSortOption sort) {
@@ -56,18 +62,22 @@ public class ListingService {
         };
     }
 
-    public ListingResponse getById(Long id) {
+    public ListingResponse getById(Long id, Long requesterId) {
         Listing listing = listingRepository.findById(id)
                 .orElseThrow(() -> new ListingNotFoundException(id));
-        return ListingResponse.from(listing);
+        return ListingResponse.from(listing, isFavorited(id, requesterId));
     }
 
     public List<ListingResponse> myPosted(Long ownerId) {
-        return listingRepository.findByOwnerId(ownerId).stream().map(ListingResponse::from).toList();
+        List<Listing> listings = listingRepository.findByOwnerId(ownerId);
+        Set<Long> favoritedIds = favoritedListingIds(listings.stream().map(Listing::getId).toList(), ownerId);
+        return listings.stream().map(listing -> ListingResponse.from(listing, favoritedIds.contains(listing.getId()))).toList();
     }
 
     public List<ListingResponse> myBought(Long buyerId) {
-        return listingRepository.findByBuyerId(buyerId).stream().map(ListingResponse::from).toList();
+        List<Listing> listings = listingRepository.findByBuyerId(buyerId);
+        Set<Long> favoritedIds = favoritedListingIds(listings.stream().map(Listing::getId).toList(), buyerId);
+        return listings.stream().map(listing -> ListingResponse.from(listing, favoritedIds.contains(listing.getId()))).toList();
     }
 
     public ListingResponse create(CreateListingRequest request, MultipartFile photo, Long ownerId) {
@@ -78,7 +88,7 @@ public class ListingService {
                 request.category(), ownerId);
         listing.addPhoto(new Photo(listing, storeReference(photo), 0));
         Listing saved = listingRepository.save(listing);
-        return ListingResponse.from(saved);
+        return ListingResponse.from(saved, false);
     }
 
     public ListingResponse buy(Long id, Long requesterId) {
@@ -93,19 +103,20 @@ public class ListingService {
         }
         Listing sold = listingRepository.findById(id)
                 .orElseThrow(() -> new ListingNotFoundException(id));
-        return ListingResponse.from(sold);
+        return ListingResponse.from(sold, isFavorited(id, requesterId));
     }
 
     public ListingResponse edit(Long id, CreateListingRequest request, Long requesterId) {
         Listing listing = ownedActiveListing(id, requesterId);
         listing.update(request.title(), request.description(), request.price(), request.category());
         Listing saved = listingRepository.save(listing);
-        return ListingResponse.from(saved);
+        return ListingResponse.from(saved, isFavorited(id, requesterId));
     }
 
     public void delete(Long id, Long requesterId) {
         Listing listing = ownedActiveListing(id, requesterId);
         listingRepository.delete(listing);
+        favoriteRepository.deleteByListingId(id);
     }
 
     public ListingResponse addPhoto(Long id, MultipartFile photo, Long requesterId) {
@@ -118,7 +129,7 @@ public class ListingService {
         }
         listing.addPhoto(new Photo(listing, storeReference(photo), listing.getPhotos().size()));
         Listing saved = listingRepository.save(listing);
-        return ListingResponse.from(saved);
+        return ListingResponse.from(saved, isFavorited(id, requesterId));
     }
 
     public ListingResponse removePhoto(Long id, Long photoId, Long requesterId) {
@@ -132,7 +143,7 @@ public class ListingService {
                 .orElseThrow(() -> new ListingPhotoNotFoundException(photoId));
         listing.removePhoto(photo);
         Listing saved = listingRepository.save(listing);
-        return ListingResponse.from(saved);
+        return ListingResponse.from(saved, isFavorited(id, requesterId));
     }
 
     public ListingResponse reorderPhotos(Long id, List<Long> photoIds, Long requesterId) {
@@ -147,7 +158,7 @@ public class ListingService {
             photosById.get(photoIds.get(i)).setSortOrder(i);
         }
         Listing saved = listingRepository.save(listing);
-        return ListingResponse.from(saved);
+        return ListingResponse.from(saved, isFavorited(id, requesterId));
     }
 
     private Listing ownedActiveListing(Long id, Long requesterId) {
@@ -160,6 +171,17 @@ public class ListingService {
             throw new ListingNotActiveException();
         }
         return listing;
+    }
+
+    private boolean isFavorited(Long listingId, Long requesterId) {
+        return requesterId != null && favoriteRepository.existsByUserIdAndListingId(requesterId, listingId);
+    }
+
+    private Set<Long> favoritedListingIds(List<Long> listingIds, Long requesterId) {
+        if (requesterId == null || listingIds.isEmpty()) {
+            return Set.of();
+        }
+        return favoriteRepository.findFavoritedListingIds(requesterId, listingIds);
     }
 
     private String storeReference(MultipartFile photo) {

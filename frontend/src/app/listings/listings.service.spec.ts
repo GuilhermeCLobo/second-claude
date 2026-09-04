@@ -79,6 +79,7 @@ describe('ListingsService', () => {
       status: 'ACTIVE',
       ownerId: 1,
       buyerId: null,
+      favorited: false,
     };
     const photo = new File(['fake-photo-bytes'], 'camera.jpg', { type: 'image/jpeg' });
 
@@ -118,6 +119,7 @@ describe('ListingsService', () => {
       status: 'ACTIVE',
       ownerId: 1,
       buyerId: null,
+      favorited: false,
     };
 
     service.getById(1).subscribe((response) => {
@@ -155,6 +157,7 @@ describe('ListingsService', () => {
       status: 'SOLD',
       ownerId: 2,
       buyerId: 1,
+      favorited: false,
     };
 
     service.buy(1).subscribe((response) => {
@@ -179,6 +182,7 @@ describe('ListingsService', () => {
       status: 'ACTIVE',
       ownerId: 1,
       buyerId: null,
+      favorited: false,
     };
     const photo = new File(['fake-photo-bytes'], 'bike-2.jpg', { type: 'image/jpeg' });
 
@@ -206,6 +210,7 @@ describe('ListingsService', () => {
       status: 'ACTIVE',
       ownerId: 1,
       buyerId: null,
+      favorited: false,
     };
 
     service.removePhoto(1, 2).subscribe((response) => {
@@ -232,6 +237,7 @@ describe('ListingsService', () => {
       status: 'ACTIVE',
       ownerId: 1,
       buyerId: null,
+      favorited: false,
     };
 
     service.reorderPhotos(1, [2, 1]).subscribe((response) => {
@@ -245,5 +251,72 @@ describe('ListingsService', () => {
     req.flush(listing);
 
     expect(result).toEqual(listing);
+  });
+
+  it('posts to the favorite endpoint for the given listing id', () => {
+    let result: Listing | undefined;
+    const listing: Listing = {
+      id: 1,
+      title: 'Bike',
+      description: 'Road bike',
+      price: 150,
+      category: 'VEHICLES',
+      photos: [{ id: 1, reference: 'bike.jpg' }],
+      status: 'ACTIVE',
+      ownerId: 2,
+      buyerId: null,
+      favorited: true,
+    };
+
+    service.favorite(1).subscribe((response) => {
+      result = response;
+    });
+
+    const req = httpMock.expectOne(
+      (request) => request.url === '/api/listings/1/favorite' && request.method === 'POST',
+    );
+    req.flush(listing);
+
+    expect(result).toEqual(listing);
+  });
+
+  it('sends a DELETE request to the favorite endpoint for the given listing id', () => {
+    let completed = false;
+
+    service.unfavorite(1).subscribe(() => {
+      completed = true;
+    });
+
+    const req = httpMock.expectOne(
+      (request) => request.url === '/api/listings/1/favorite' && request.method === 'DELETE',
+    );
+    req.flush(null);
+
+    expect(completed).toBeTrue();
+  });
+
+  it('fetches the current user\'s favorited listings', () => {
+    let result: Listing[] | undefined;
+    const favorited: Listing = {
+      id: 1,
+      title: 'Bike',
+      description: 'Road bike',
+      price: 150,
+      category: 'VEHICLES',
+      photos: [{ id: 1, reference: 'bike.jpg' }],
+      status: 'ACTIVE',
+      ownerId: 2,
+      buyerId: null,
+      favorited: true,
+    };
+
+    service.myFavorites().subscribe((response) => {
+      result = response;
+    });
+
+    const req = httpMock.expectOne((request) => request.url === '/api/listings/mine/favorites');
+    req.flush([favorited]);
+
+    expect(result).toEqual([favorited]);
   });
 });

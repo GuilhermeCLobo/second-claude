@@ -17,6 +17,7 @@ export interface Listing {
   status: ListingStatus;
   ownerId: number;
   buyerId: number | null;
+  favorited: boolean;
 }
 
 export type ListingSort = 'NEWEST' | 'PRICE_ASC' | 'PRICE_DESC';

@@ -35,6 +35,7 @@ public class ListingController {
 
     @GetMapping
     public BrowseListingsResponse browse(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
             @RequestParam(required = false) Category category,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) BigDecimal minPrice,
@@ -42,12 +43,16 @@ public class ListingController {
             @RequestParam(defaultValue = "NEWEST") ListingSortOption sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size) {
-        return listingService.browse(category, search, minPrice, maxPrice, sort, page, size);
+        Long requesterId = currentUserResolver.resolveOptional(authorization);
+        return listingService.browse(category, search, minPrice, maxPrice, sort, page, size, requesterId);
     }
 
     @GetMapping("/{id}")
-    public ListingResponse getById(@PathVariable Long id) {
-        return listingService.getById(id);
+    public ListingResponse getById(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Long id) {
+        Long requesterId = currentUserResolver.resolveOptional(authorization);
+        return listingService.getById(id, requesterId);
     }
 
     @GetMapping("/mine/posted")

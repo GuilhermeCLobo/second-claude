@@ -20,6 +20,7 @@ describe('MyListingsComponent', () => {
     status: 'ACTIVE',
     ownerId: 1,
     buyerId: null,
+    favorited: false,
   };
 
   const boughtListing: Listing = {
@@ -32,6 +33,7 @@ describe('MyListingsComponent', () => {
     status: 'SOLD',
     ownerId: 2,
     buyerId: 1,
+    favorited: false,
   };
 
   beforeEach(() => {

@@ -83,6 +83,7 @@ describe('CreateListingComponent', () => {
       status: 'ACTIVE',
       ownerId: 1,
       buyerId: null,
+      favorited: false,
     };
     req.flush(created);
 
@@ -144,6 +145,7 @@ describe('CreateListingComponent', () => {
       status: 'ACTIVE',
       ownerId: 1,
       buyerId: null,
+      favorited: false,
     };
     httpMock.expectOne((request) => request.url === '/api/listings' && request.method === 'POST').flush(created);
 

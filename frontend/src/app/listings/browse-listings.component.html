@@ -39,6 +39,15 @@
         <span class="price">{{ listing.price | currency }}</span>
         <span class="status" *ngIf="listing.status === 'SOLD'">SOLD</span>
       </a>
+      <button
+        *ngIf="authService.session()"
+        type="button"
+        class="favorite-toggle"
+        [class.favorited]="listing.favorited"
+        (click)="toggleFavorite(listing)"
+      >
+        {{ listing.favorited ? 'Unfavorite' : 'Favorite' }}
+      </button>
     </li>
   </ul>
 

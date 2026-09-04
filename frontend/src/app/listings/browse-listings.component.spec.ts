@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 
+import { AUTH_SESSION_STORAGE_KEY } from '../auth/auth.service';
 import { BrowseListingsComponent } from './browse-listings.component';
 import { Listing } from './listing.model';
 
@@ -21,6 +22,7 @@ describe('BrowseListingsComponent', () => {
       status: 'ACTIVE',
       ownerId: 1,
       buyerId: null,
+      favorited: false,
     },
     {
       id: 2,
@@ -32,20 +34,36 @@ describe('BrowseListingsComponent', () => {
       status: 'SOLD',
       ownerId: 1,
       buyerId: 2,
+      favorited: false,
     },
   ];
 
-  beforeEach(() => {
+  function setUp(): void {
     TestBed.configureTestingModule({
       imports: [BrowseListingsComponent],
       providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     });
     fixture = TestBed.createComponent(BrowseListingsComponent);
     httpMock = TestBed.inject(HttpTestingController);
+  }
+
+  function setUpAsLoggedInUser(): void {
+    localStorage.setItem(
+      AUTH_SESSION_STORAGE_KEY,
+      JSON.stringify({ token: 'jwt-token', userId: 1, username: 'shopper' }),
+    );
+    TestBed.resetTestingModule();
+    setUp();
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    setUp();
   });
 
   afterEach(() => {
     httpMock.verify();
+    localStorage.clear();
   });
 
   it('loads and displays listings, marking SOLD ones distinctly', () => {
@@ -148,5 +166,40 @@ describe('BrowseListingsComponent', () => {
     const req = httpMock.expectOne((request) => request.url === '/api/listings');
     expect(req.request.params.get('page')).toBe('1');
     req.flush({ listings, totalCount: 30 });
+  });
+
+  it('does not offer a favorite toggle when no one is logged in', () => {
+    fixture.detectChanges();
+    httpMock.expectOne((request) => request.url === '/api/listings').flush({ listings, totalCount: 2 });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.favorite-toggle')).toBeNull();
+  });
+
+  it('offers a favorite toggle to a logged-in user and toggles it on click', () => {
+    setUpAsLoggedInUser();
+    fixture.detectChanges();
+    httpMock.expectOne((request) => request.url === '/api/listings').flush({ listings, totalCount: 2 });
+    fixture.detectChanges();
+
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('.favorite-toggle');
+    expect(button.textContent).toContain('Favorite');
+    button.click();
+
+    httpMock
+      .expectOne((request) => request.url === '/api/listings/1/favorite' && request.method === 'POST')
+      .flush({ ...listings[0], favorited: true });
+    fixture.detectChanges();
+
+    expect(button.textContent).toContain('Unfavorite');
+
+    button.click();
+
+    httpMock
+      .expectOne((request) => request.url === '/api/listings/1/favorite' && request.method === 'DELETE')
+      .flush(null);
+    fixture.detectChanges();
+
+    expect(button.textContent).toContain('Favorite');
   });
 });

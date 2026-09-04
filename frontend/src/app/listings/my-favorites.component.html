@@ -1,0 +1,15 @@
+<section class="favorited-listings">
+  <h2>My Favorites</h2>
+  <ul>
+    <li *ngFor="let listing of favoritedListings" [class.sold]="listing.status === 'SOLD'">
+      <a [routerLink]="['/listings', listing.id]">
+        <img *ngIf="listing.photos.length" [src]="listing.photos[0].reference" [alt]="listing.title" class="thumbnail" />
+        <span class="title">{{ listing.title }}</span>
+        <span class="price">{{ listing.price | currency }}</span>
+        <span class="status" *ngIf="listing.status === 'SOLD'">SOLD</span>
+      </a>
+      <button type="button" class="unfavorite" (click)="unfavorite(listing)">Unfavorite</button>
+    </li>
+  </ul>
+  <p *ngIf="favoritedListings.length === 0" class="empty">You haven't favorited any listings yet.</p>
+</section>

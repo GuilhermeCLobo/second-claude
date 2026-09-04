@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
+import { AuthService } from '../auth/auth.service';
 import { CATEGORIES, Category } from './category';
 import { Listing, ListingSort } from './listing.model';
 import { ListingsService } from './listings.service';
@@ -25,10 +26,25 @@ export class BrowseListingsComponent implements OnInit {
   sort: ListingSort = 'NEWEST';
   page = 0;
 
-  constructor(private readonly listingsService: ListingsService) {}
+  constructor(
+    private readonly listingsService: ListingsService,
+    readonly authService: AuthService,
+  ) {}
 
   ngOnInit(): void {
     this.load();
+  }
+
+  toggleFavorite(listing: Listing): void {
+    if (listing.favorited) {
+      this.listingsService.unfavorite(listing.id).subscribe(() => {
+        listing.favorited = false;
+      });
+    } else {
+      this.listingsService.favorite(listing.id).subscribe((updated) => {
+        listing.favorited = updated.favorited;
+      });
+    }
   }
 
   get totalPages(): number {

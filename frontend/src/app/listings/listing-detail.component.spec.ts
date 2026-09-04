@@ -22,6 +22,7 @@ describe('ListingDetailComponent', () => {
     status: 'ACTIVE',
     ownerId: 1,
     buyerId: null,
+    favorited: false,
   };
 
   function setUp(): void {
@@ -92,6 +93,44 @@ describe('ListingDetailComponent', () => {
     const element: HTMLElement = fixture.nativeElement;
     expect(element.querySelector('.delete-listing')).toBeNull();
     expect(element.querySelector('.buy-listing')).toBeNull();
+    expect(element.querySelector('.favorite-toggle')).toBeNull();
+  });
+
+  it('offers a favorite toggle to a logged-in user, reflecting server state and toggling on click', () => {
+    setUpAsLoggedInUser(2);
+    fixture.detectChanges();
+    httpMock.expectOne((request) => request.url === '/api/listings/1').flush(listing);
+    fixture.detectChanges();
+
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('.favorite-toggle');
+    expect(button).toBeTruthy();
+    expect(button.textContent).toContain('Favorite');
+    button.click();
+
+    httpMock
+      .expectOne((request) => request.url === '/api/listings/1/favorite' && request.method === 'POST')
+      .flush({ ...listing, favorited: true });
+    fixture.detectChanges();
+
+    expect(button.textContent).toContain('Unfavorite');
+    button.click();
+
+    httpMock
+      .expectOne((request) => request.url === '/api/listings/1/favorite' && request.method === 'DELETE')
+      .flush(null);
+    fixture.detectChanges();
+
+    expect(button.textContent).toContain('Favorite');
+  });
+
+  it('a User can favorite their own listing', () => {
+    setUpAsLoggedInUser(1);
+    fixture.detectChanges();
+    httpMock.expectOne((request) => request.url === '/api/listings/1').flush(listing);
+    fixture.detectChanges();
+
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('.favorite-toggle');
+    expect(button).toBeTruthy();
   });
 
   it('offers a buy action, but not a delete action, to a User who does not own the listing', () => {

@@ -86,4 +86,16 @@ export class ListingsService {
   myBought(): Observable<Listing[]> {
     return this.http.get<Listing[]>('/api/listings/mine/bought');
   }
+
+  favorite(id: number): Observable<Listing> {
+    return this.http.post<Listing>(`/api/listings/${id}/favorite`, {});
+  }
+
+  unfavorite(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/listings/${id}/favorite`);
+  }
+
+  myFavorites(): Observable<Listing[]> {
+    return this.http.get<Listing[]>('/api/listings/mine/favorites');
+  }
 }

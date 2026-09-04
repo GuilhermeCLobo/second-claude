@@ -23,4 +23,12 @@ public class CurrentUserResolver {
             throw new UnauthenticatedException();
         }
     }
+
+    public Long resolveOptional(String authorizationHeader) {
+        try {
+            return resolve(authorizationHeader);
+        } catch (UnauthenticatedException e) {
+            return null;
+        }
+    }
 }

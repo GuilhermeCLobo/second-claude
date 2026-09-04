@@ -16,7 +16,7 @@ describe('EditListingComponent', () => {
     description: 'Digital camera',
     price: 200,
     category: 'ELECTRONICS',
-    photoReference: '/api/photos/camera.jpg',
+    photos: [{ id: 1, reference: '/api/photos/camera.jpg' }],
     status: 'ACTIVE',
     ownerId: 1,
     buyerId: null,

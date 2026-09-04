@@ -53,7 +53,7 @@ describe('ListingsService', () => {
       description: 'Digital camera',
       price: 200,
       category: 'ELECTRONICS',
-      photoReference: '/api/photos/camera.jpg',
+      photos: [{ id: 1, reference: '/api/photos/camera.jpg' }],
       status: 'ACTIVE',
       ownerId: 1,
       buyerId: null,
@@ -92,7 +92,7 @@ describe('ListingsService', () => {
       description: 'Road bike',
       price: 150,
       category: 'VEHICLES',
-      photoReference: 'bike.jpg',
+      photos: [{ id: 1, reference: 'bike.jpg' }],
       status: 'ACTIVE',
       ownerId: 1,
       buyerId: null,
@@ -129,7 +129,7 @@ describe('ListingsService', () => {
       description: 'Road bike',
       price: 150,
       category: 'VEHICLES',
-      photoReference: 'bike.jpg',
+      photos: [{ id: 1, reference: 'bike.jpg' }],
       status: 'SOLD',
       ownerId: 2,
       buyerId: 1,
@@ -140,6 +140,86 @@ describe('ListingsService', () => {
     });
 
     const req = httpMock.expectOne((request) => request.url === '/api/listings/1/buy' && request.method === 'POST');
+    req.flush(listing);
+
+    expect(result).toEqual(listing);
+  });
+
+  it('posts a new photo as multipart form data to the add-photo endpoint', () => {
+    let result: Listing | undefined;
+    const listing: Listing = {
+      id: 1,
+      title: 'Bike',
+      description: 'Road bike',
+      price: 150,
+      category: 'VEHICLES',
+      photos: [{ id: 1, reference: 'bike.jpg' }, { id: 2, reference: 'bike-2.jpg' }],
+      status: 'ACTIVE',
+      ownerId: 1,
+      buyerId: null,
+    };
+    const photo = new File(['fake-photo-bytes'], 'bike-2.jpg', { type: 'image/jpeg' });
+
+    service.addPhoto(1, photo).subscribe((response) => {
+      result = response;
+    });
+
+    const req = httpMock.expectOne((request) => request.url === '/api/listings/1/photos' && request.method === 'POST');
+    const formData = req.request.body as FormData;
+    expect(formData.get('photo')).toBe(photo);
+    req.flush(listing);
+
+    expect(result).toEqual(listing);
+  });
+
+  it('sends a DELETE request to the remove-photo endpoint for the given photo id', () => {
+    let result: Listing | undefined;
+    const listing: Listing = {
+      id: 1,
+      title: 'Bike',
+      description: 'Road bike',
+      price: 150,
+      category: 'VEHICLES',
+      photos: [{ id: 1, reference: 'bike.jpg' }],
+      status: 'ACTIVE',
+      ownerId: 1,
+      buyerId: null,
+    };
+
+    service.removePhoto(1, 2).subscribe((response) => {
+      result = response;
+    });
+
+    const req = httpMock.expectOne(
+      (request) => request.url === '/api/listings/1/photos/2' && request.method === 'DELETE',
+    );
+    req.flush(listing);
+
+    expect(result).toEqual(listing);
+  });
+
+  it('sends the ordered photo ids to the reorder endpoint', () => {
+    let result: Listing | undefined;
+    const listing: Listing = {
+      id: 1,
+      title: 'Bike',
+      description: 'Road bike',
+      price: 150,
+      category: 'VEHICLES',
+      photos: [{ id: 2, reference: 'bike-2.jpg' }, { id: 1, reference: 'bike.jpg' }],
+      status: 'ACTIVE',
+      ownerId: 1,
+      buyerId: null,
+    };
+
+    service.reorderPhotos(1, [2, 1]).subscribe((response) => {
+      result = response;
+    });
+
+    const req = httpMock.expectOne(
+      (request) => request.url === '/api/listings/1/photos/order' && request.method === 'PUT',
+    );
+    expect(req.request.body).toEqual({ photoIds: [2, 1] });
     req.flush(listing);
 
     expect(result).toEqual(listing);

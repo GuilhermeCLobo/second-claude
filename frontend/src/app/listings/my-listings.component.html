@@ -3,7 +3,7 @@
   <ul>
     <li *ngFor="let listing of postedListings" [class.sold]="listing.status === 'SOLD'">
       <a [routerLink]="['/listings', listing.id]">
-        <img *ngIf="listing.photoReference" [src]="listing.photoReference" [alt]="listing.title" class="thumbnail" />
+        <img *ngIf="listing.photos.length" [src]="listing.photos[0].reference" [alt]="listing.title" class="thumbnail" />
         <span class="title">{{ listing.title }}</span>
         <span class="price">{{ listing.price | currency }}</span>
         <span class="status" *ngIf="listing.status === 'SOLD'">SOLD</span>
@@ -18,7 +18,7 @@
   <ul>
     <li *ngFor="let listing of boughtListings">
       <a [routerLink]="['/listings', listing.id]">
-        <img *ngIf="listing.photoReference" [src]="listing.photoReference" [alt]="listing.title" class="thumbnail" />
+        <img *ngIf="listing.photos.length" [src]="listing.photos[0].reference" [alt]="listing.title" class="thumbnail" />
         <span class="title">{{ listing.title }}</span>
         <span class="price">{{ listing.price | currency }}</span>
       </a>

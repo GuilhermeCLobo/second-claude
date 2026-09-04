@@ -18,7 +18,7 @@ describe('ListingDetailComponent', () => {
     description: 'Road bike',
     price: 150,
     category: 'VEHICLES',
-    photoReference: 'bike.jpg',
+    photos: [{ id: 1, reference: 'bike.jpg' }],
     status: 'ACTIVE',
     ownerId: 1,
     buyerId: null,
@@ -211,5 +211,132 @@ describe('ListingDetailComponent', () => {
     fixture.detectChanges();
 
     expect(element.querySelector('.buy-error')?.textContent).toContain('Could not buy');
+  });
+
+  it('shows every photo in order in the gallery', () => {
+    const twoPhotoListing: Listing = {
+      ...listing,
+      photos: [
+        { id: 1, reference: 'bike.jpg' },
+        { id: 2, reference: 'bike-2.jpg' },
+      ],
+    };
+    fixture.detectChanges();
+    httpMock.expectOne((request) => request.url === '/api/listings/1').flush(twoPhotoListing);
+    fixture.detectChanges();
+
+    const images: NodeListOf<HTMLImageElement> = fixture.nativeElement.querySelectorAll('.photos img');
+    expect(images.length).toBe(2);
+    expect(images[0].getAttribute('src')).toBe('bike.jpg');
+    expect(images[1].getAttribute('src')).toBe('bike-2.jpg');
+  });
+
+  it('offers photo management to the owner of an ACTIVE listing, but not to a non-owner', () => {
+    setUpAsLoggedInUser(2);
+    fixture.detectChanges();
+    httpMock.expectOne((request) => request.url === '/api/listings/1').flush(listing);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.manage-photos')).toBeNull();
+  });
+
+  it('disables removing a photo when it is the only one remaining', () => {
+    setUpAsLoggedInUser(1);
+    fixture.detectChanges();
+    httpMock.expectOne((request) => request.url === '/api/listings/1').flush(listing);
+    fixture.detectChanges();
+
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('.remove-photo');
+    expect(button.disabled).toBeTrue();
+  });
+
+  it('adding a photo posts it and refreshes the listing with the new photo appended', () => {
+    setUpAsLoggedInUser(1);
+    fixture.detectChanges();
+    httpMock.expectOne((request) => request.url === '/api/listings/1').flush(listing);
+    fixture.detectChanges();
+
+    const element: HTMLElement = fixture.nativeElement;
+    const photoInput: HTMLInputElement = element.querySelector('input[name="newPhoto"]')!;
+    const photo = new File(['fake-photo-bytes'], 'bike-2.jpg', { type: 'image/jpeg' });
+    Object.defineProperty(photoInput, 'files', { value: [photo] });
+    photoInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const addButton: HTMLButtonElement = element.querySelector('.add-photo')!;
+    expect(addButton.disabled).toBeFalse();
+    addButton.click();
+
+    const req = httpMock.expectOne(
+      (request) => request.url === '/api/listings/1/photos' && request.method === 'POST',
+    );
+    expect((req.request.body as FormData).get('photo')).toBe(photo);
+    req.flush({
+      ...listing,
+      photos: [...listing.photos, { id: 2, reference: 'bike-2.jpg' }],
+    });
+    fixture.detectChanges();
+
+    expect(element.querySelectorAll('.photos img').length).toBe(2);
+  });
+
+  it('removing a photo deletes it and refreshes the listing', () => {
+    const twoPhotoListing: Listing = {
+      ...listing,
+      photos: [
+        { id: 1, reference: 'bike.jpg' },
+        { id: 2, reference: 'bike-2.jpg' },
+      ],
+    };
+    setUpAsLoggedInUser(1);
+    fixture.detectChanges();
+    httpMock.expectOne((request) => request.url === '/api/listings/1').flush(twoPhotoListing);
+    fixture.detectChanges();
+
+    const element: HTMLElement = fixture.nativeElement;
+    const removeButtons: NodeListOf<HTMLButtonElement> = element.querySelectorAll('.remove-photo');
+    expect(removeButtons[0].disabled).toBeFalse();
+    removeButtons[0].click();
+
+    httpMock
+      .expectOne((request) => request.url === '/api/listings/1/photos/1' && request.method === 'DELETE')
+      .flush({ ...twoPhotoListing, photos: [{ id: 2, reference: 'bike-2.jpg' }] });
+    fixture.detectChanges();
+
+    expect(element.querySelectorAll('.photos img').length).toBe(1);
+  });
+
+  it('moving a photo up sends the reordered photo ids and refreshes the listing', () => {
+    const twoPhotoListing: Listing = {
+      ...listing,
+      photos: [
+        { id: 1, reference: 'bike.jpg' },
+        { id: 2, reference: 'bike-2.jpg' },
+      ],
+    };
+    setUpAsLoggedInUser(1);
+    fixture.detectChanges();
+    httpMock.expectOne((request) => request.url === '/api/listings/1').flush(twoPhotoListing);
+    fixture.detectChanges();
+
+    const element: HTMLElement = fixture.nativeElement;
+    const moveUpButtons: NodeListOf<HTMLButtonElement> = element.querySelectorAll('.move-photo-up');
+    moveUpButtons[1].click();
+
+    const req = httpMock.expectOne(
+      (request) => request.url === '/api/listings/1/photos/order' && request.method === 'PUT',
+    );
+    expect(req.request.body).toEqual({ photoIds: [2, 1] });
+    req.flush({
+      ...twoPhotoListing,
+      photos: [
+        { id: 2, reference: 'bike-2.jpg' },
+        { id: 1, reference: 'bike.jpg' },
+      ],
+    });
+    fixture.detectChanges();
+
+    const images: NodeListOf<HTMLImageElement> = element.querySelectorAll('.photos img');
+    expect(images[0].getAttribute('src')).toBe('bike-2.jpg');
   });
 });

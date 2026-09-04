@@ -91,4 +91,31 @@ public class ListingController {
         Long requesterId = currentUserResolver.resolve(authorization);
         return listingService.buy(id, requesterId);
     }
+
+    @PostMapping(value = "/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ListingResponse addPhoto(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Long id,
+            @RequestPart(value = "photo", required = false) MultipartFile photo) {
+        Long requesterId = currentUserResolver.resolve(authorization);
+        return listingService.addPhoto(id, photo, requesterId);
+    }
+
+    @DeleteMapping("/{id}/photos/{photoId}")
+    public ListingResponse removePhoto(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Long id,
+            @PathVariable Long photoId) {
+        Long requesterId = currentUserResolver.resolve(authorization);
+        return listingService.removePhoto(id, photoId, requesterId);
+    }
+
+    @PutMapping("/{id}/photos/order")
+    public ListingResponse reorderPhotos(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Long id,
+            @Valid @RequestBody ReorderPhotosRequest request) {
+        Long requesterId = currentUserResolver.resolve(authorization);
+        return listingService.reorderPhotos(id, request.photoIds(), requesterId);
+    }
 }

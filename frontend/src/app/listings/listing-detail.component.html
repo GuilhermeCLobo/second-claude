@@ -1,5 +1,7 @@
 <section *ngIf="listing as listing">
-  <img *ngIf="listing.photoReference" [src]="listing.photoReference" [alt]="listing.title" class="photo" />
+  <div class="photos" *ngIf="listing.photos.length">
+    <img *ngFor="let photo of listing.photos" [src]="photo.reference" [alt]="listing.title" class="photo" />
+  </div>
 
   <h1>{{ listing.title }}</h1>
   <p class="status" [class.sold]="listing.status === 'SOLD'">{{ listing.status }}</p>
@@ -14,6 +16,54 @@
 
   <button *ngIf="canBuy()" type="button" class="buy-listing" (click)="buy()">Buy listing</button>
   <p *ngIf="buyError" class="buy-error">{{ buyError }}</p>
+
+  <section *ngIf="canManagePhotos()" class="manage-photos">
+    <h2>Manage photos</h2>
+    <ul>
+      <li *ngFor="let photo of listing.photos; let i = index">
+        <img [src]="photo.reference" [alt]="listing.title" class="photo-thumb" />
+        <button type="button" class="move-photo-up" (click)="movePhoto(i, -1)" [disabled]="i === 0">Move up</button>
+        <button
+          type="button"
+          class="move-photo-down"
+          (click)="movePhoto(i, 1)"
+          [disabled]="i === listing.photos.length - 1"
+        >
+          Move down
+        </button>
+        <button
+          type="button"
+          class="remove-photo"
+          (click)="removePhoto(photo.id)"
+          [disabled]="listing.photos.length <= 1"
+        >
+          Remove
+        </button>
+      </li>
+    </ul>
+    <p *ngIf="removePhotoError" class="remove-photo-error">{{ removePhotoError }}</p>
+    <p *ngIf="reorderError" class="reorder-error">{{ reorderError }}</p>
+
+    <label>
+      Add photo
+      <input
+        type="file"
+        accept="image/*"
+        name="newPhoto"
+        [disabled]="listing.photos.length >= maxPhotos"
+        (change)="onNewPhotoSelected($event)"
+      />
+    </label>
+    <button
+      type="button"
+      class="add-photo"
+      (click)="addPhoto()"
+      [disabled]="!selectedNewPhoto || listing.photos.length >= maxPhotos"
+    >
+      Add photo
+    </button>
+    <p *ngIf="addPhotoError" class="add-photo-error">{{ addPhotoError }}</p>
+  </section>
 </section>
 
 <p *ngIf="notFound" class="not-found">Listing not found.</p>

@@ -72,11 +72,18 @@ class ListingsApiTest {
         return new MockMultipartFile("photo", "camera.jpg", "image/jpeg", "fake-photo-bytes".getBytes(StandardCharsets.UTF_8));
     }
 
+    private Listing listing(String title, String description, BigDecimal price, Category category,
+                             String photoReference, Long ownerId) {
+        Listing listing = new Listing(title, description, price, category, ownerId);
+        listing.addPhoto(new Photo(listing, photoReference, 0));
+        return listing;
+    }
+
     @Test
     void browsingWithoutACategoryReturnsAllListingsIncludingSoldOnes() throws Exception {
-        listingRepository.save(new Listing("Bike", "Road bike", new BigDecimal("150.00"),
+        listingRepository.save(listing("Bike", "Road bike", new BigDecimal("150.00"),
                 Category.VEHICLES, "bike.jpg", 1L));
-        Listing soldListing = listingRepository.save(new Listing("Sofa", "Comfy sofa", new BigDecimal("300.00"),
+        Listing soldListing = listingRepository.save(listing("Sofa", "Comfy sofa", new BigDecimal("300.00"),
                 Category.FURNITURE, "sofa.jpg", 1L));
         ReflectionTestUtils.setField(soldListing, "status", ListingStatus.SOLD);
         listingRepository.save(soldListing);
@@ -89,9 +96,9 @@ class ListingsApiTest {
 
     @Test
     void browsingWithACategoryFiltersToJustThatCategory() throws Exception {
-        listingRepository.save(new Listing("Laptop", "Fast laptop", new BigDecimal("800.00"),
+        listingRepository.save(listing("Laptop", "Fast laptop", new BigDecimal("800.00"),
                 Category.ELECTRONICS, "laptop.jpg", 2L));
-        listingRepository.save(new Listing("Desk", "Wooden desk", new BigDecimal("120.00"),
+        listingRepository.save(listing("Desk", "Wooden desk", new BigDecimal("120.00"),
                 Category.FURNITURE, "desk.jpg", 2L));
 
         mockMvc.perform(get("/api/listings").param("category", "ELECTRONICS"))
@@ -102,7 +109,7 @@ class ListingsApiTest {
 
     @Test
     void gettingAnExistingListingByIdReturnsItsFullDetail() throws Exception {
-        Listing listing = listingRepository.save(new Listing("Bike", "Road bike", new BigDecimal("150.00"),
+        Listing listing = listingRepository.save(listing("Bike", "Road bike", new BigDecimal("150.00"),
                 Category.VEHICLES, "bike.jpg", 1L));
 
         mockMvc.perform(get("/api/listings/{id}", listing.getId()))
@@ -112,7 +119,7 @@ class ListingsApiTest {
                 .andExpect(jsonPath("$.description").value("Road bike"))
                 .andExpect(jsonPath("$.price").value(150.00))
                 .andExpect(jsonPath("$.category").value("VEHICLES"))
-                .andExpect(jsonPath("$.photoReference").value("bike.jpg"))
+                .andExpect(jsonPath("$.photos[0].reference").value("bike.jpg"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
     }
 
@@ -177,10 +184,10 @@ class ListingsApiTest {
                 .andExpect(jsonPath("$.title").value("Vintage Camera"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.ownerId").exists())
-                .andExpect(jsonPath("$.photoReference").value(org.hamcrest.Matchers.startsWith("/api/photos/")))
+                .andExpect(jsonPath("$.photos[0].reference").value(org.hamcrest.Matchers.startsWith("/api/photos/")))
                 .andReturn().getResponse().getContentAsString();
         Long id = objectMapper.readTree(response).get("id").asLong();
-        String photoReference = objectMapper.readTree(response).get("photoReference").asText();
+        String photoReference = objectMapper.readTree(response).get("photos").get(0).get("reference").asText();
 
         mockMvc.perform(get("/api/listings"))
                 .andExpect(jsonPath("$[?(@.id == " + id + ")].title").value("Vintage Camera"));
@@ -203,7 +210,7 @@ class ListingsApiTest {
 
     @Test
     void editingWithoutAuthenticationIsRejected() throws Exception {
-        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+        Listing listing = listingRepository.save(listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
                 Category.VEHICLES, "scooter.jpg", 1L));
 
         mockMvc.perform(put("/api/listings/{id}", listing.getId())
@@ -218,7 +225,7 @@ class ListingsApiTest {
     @Test
     void editingAnotherUsersListingIsRejected() throws Exception {
         Session session = registerAndLoginSession("quinn");
-        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+        Listing listing = listingRepository.save(listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
                 Category.VEHICLES, "scooter.jpg", session.userId() + 1));
 
         mockMvc.perform(put("/api/listings/{id}", listing.getId())
@@ -234,7 +241,7 @@ class ListingsApiTest {
     @Test
     void editingASoldListingIsRejected() throws Exception {
         Session session = registerAndLoginSession("rosa");
-        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+        Listing listing = listingRepository.save(listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
                 Category.VEHICLES, "scooter.jpg", session.userId()));
         ReflectionTestUtils.setField(listing, "status", ListingStatus.SOLD);
         listingRepository.save(listing);
@@ -266,7 +273,7 @@ class ListingsApiTest {
     @Test
     void editingWithInvalidPayloadIsRejectedWithValidationErrors() throws Exception {
         Session session = registerAndLoginSession("tina");
-        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+        Listing listing = listingRepository.save(listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
                 Category.VEHICLES, "scooter.jpg", session.userId()));
 
         mockMvc.perform(put("/api/listings/{id}", listing.getId())
@@ -283,7 +290,7 @@ class ListingsApiTest {
     @Test
     void editingYourOwnActiveListingUpdatesItsDetailsAndLeavesThePhotoUnchanged() throws Exception {
         Session session = registerAndLoginSession("uma");
-        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+        Listing listing = listingRepository.save(listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
                 Category.VEHICLES, "scooter.jpg", session.userId()));
 
         mockMvc.perform(put("/api/listings/{id}", listing.getId())
@@ -298,16 +305,16 @@ class ListingsApiTest {
                 .andExpect(jsonPath("$.price").value(120.00))
                 .andExpect(jsonPath("$.category").value("OTHER"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
-                .andExpect(jsonPath("$.photoReference").value("scooter.jpg"));
+                .andExpect(jsonPath("$.photos[0].reference").value("scooter.jpg"));
 
         mockMvc.perform(get("/api/listings/{id}", listing.getId()))
                 .andExpect(jsonPath("$.title").value("Electric Scooter"))
-                .andExpect(jsonPath("$.photoReference").value("scooter.jpg"));
+                .andExpect(jsonPath("$.photos[0].reference").value("scooter.jpg"));
     }
 
     @Test
     void deletingWithoutAuthenticationIsRejected() throws Exception {
-        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+        Listing listing = listingRepository.save(listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
                 Category.VEHICLES, "scooter.jpg", 1L));
 
         mockMvc.perform(delete("/api/listings/{id}", listing.getId()))
@@ -318,7 +325,7 @@ class ListingsApiTest {
     @Test
     void deletingAnotherUsersListingIsRejected() throws Exception {
         Session session = registerAndLoginSession("irene");
-        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+        Listing listing = listingRepository.save(listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
                 Category.VEHICLES, "scooter.jpg", session.userId() + 1));
 
         mockMvc.perform(delete("/api/listings/{id}", listing.getId())
@@ -330,7 +337,7 @@ class ListingsApiTest {
     @Test
     void deletingASoldListingIsRejected() throws Exception {
         Session session = registerAndLoginSession("jack");
-        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+        Listing listing = listingRepository.save(listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
                 Category.VEHICLES, "scooter.jpg", session.userId()));
         ReflectionTestUtils.setField(listing, "status", ListingStatus.SOLD);
         listingRepository.save(listing);
@@ -344,7 +351,7 @@ class ListingsApiTest {
     @Test
     void deletingYourOwnActiveListingRemovesItSoItNoLongerAppearsWhenBrowsingOrViewing() throws Exception {
         Session session = registerAndLoginSession("karen");
-        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+        Listing listing = listingRepository.save(listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
                 Category.VEHICLES, "scooter.jpg", session.userId()));
 
         mockMvc.perform(delete("/api/listings/{id}", listing.getId())
@@ -357,7 +364,7 @@ class ListingsApiTest {
 
     @Test
     void buyingWithoutAuthenticationIsRejected() throws Exception {
-        Listing listing = listingRepository.save(new Listing("Chair", "Office chair", new BigDecimal("40.00"),
+        Listing listing = listingRepository.save(listing("Chair", "Office chair", new BigDecimal("40.00"),
                 Category.FURNITURE, "chair.jpg", 1L));
 
         mockMvc.perform(post("/api/listings/{id}/buy", listing.getId()))
@@ -368,7 +375,7 @@ class ListingsApiTest {
     @Test
     void buyingYourOwnListingIsRejected() throws Exception {
         Session session = registerAndLoginSession("liam");
-        Listing listing = listingRepository.save(new Listing("Chair", "Office chair", new BigDecimal("40.00"),
+        Listing listing = listingRepository.save(listing("Chair", "Office chair", new BigDecimal("40.00"),
                 Category.FURNITURE, "chair.jpg", session.userId()));
 
         mockMvc.perform(post("/api/listings/{id}/buy", listing.getId())
@@ -380,7 +387,7 @@ class ListingsApiTest {
     @Test
     void buyingAnAlreadySoldListingIsRejected() throws Exception {
         Session session = registerAndLoginSession("mona");
-        Listing listing = listingRepository.save(new Listing("Chair", "Office chair", new BigDecimal("40.00"),
+        Listing listing = listingRepository.save(listing("Chair", "Office chair", new BigDecimal("40.00"),
                 Category.FURNITURE, "chair.jpg", session.userId() + 1));
         ReflectionTestUtils.setField(listing, "status", ListingStatus.SOLD);
         listingRepository.save(listing);
@@ -394,7 +401,7 @@ class ListingsApiTest {
     @Test
     void buyingAnActiveListingOwnedBySomeoneElseMarksItSoldWithTheBuyerRecorded() throws Exception {
         Session session = registerAndLoginSession("nina");
-        Listing listing = listingRepository.save(new Listing("Chair", "Office chair", new BigDecimal("40.00"),
+        Listing listing = listingRepository.save(listing("Chair", "Office chair", new BigDecimal("40.00"),
                 Category.FURNITURE, "chair.jpg", session.userId() + 1));
 
         mockMvc.perform(post("/api/listings/{id}/buy", listing.getId())
@@ -413,7 +420,7 @@ class ListingsApiTest {
         Session owner = registerAndLoginSession("owen-concurrent");
         Session buyerA = registerAndLoginSession("buyer-a-concurrent");
         Session buyerB = registerAndLoginSession("buyer-b-concurrent");
-        Listing listing = listingRepository.save(new Listing("Chair", "Office chair", new BigDecimal("40.00"),
+        Listing listing = listingRepository.save(listing("Chair", "Office chair", new BigDecimal("40.00"),
                 Category.FURNITURE, "chair.jpg", owner.userId()));
 
         Callable<Integer> attemptA = () -> mockMvc.perform(post("/api/listings/{id}/buy", listing.getId())
@@ -457,9 +464,9 @@ class ListingsApiTest {
     @Test
     void myPostedListingsReturnsOnlyListingsOwnedByTheCurrentUser() throws Exception {
         Session session = registerAndLoginSession("oscar");
-        listingRepository.save(new Listing("Guitar", "Acoustic guitar", new BigDecimal("90.00"),
+        listingRepository.save(listing("Guitar", "Acoustic guitar", new BigDecimal("90.00"),
                 Category.OTHER, "guitar.jpg", session.userId()));
-        listingRepository.save(new Listing("Drone", "Camera drone", new BigDecimal("250.00"),
+        listingRepository.save(listing("Drone", "Camera drone", new BigDecimal("250.00"),
                 Category.ELECTRONICS, "drone.jpg", session.userId() + 1));
 
         mockMvc.perform(get("/api/listings/mine/posted")
@@ -474,12 +481,12 @@ class ListingsApiTest {
     @Test
     void myBoughtListingsReturnsOnlyListingsBoughtByTheCurrentUser() throws Exception {
         Session session = registerAndLoginSession("paula");
-        Listing bought = listingRepository.save(new Listing("Tablet", "10-inch tablet", new BigDecimal("200.00"),
+        Listing bought = listingRepository.save(listing("Tablet", "10-inch tablet", new BigDecimal("200.00"),
                 Category.ELECTRONICS, "tablet.jpg", session.userId() + 1));
         ReflectionTestUtils.setField(bought, "status", ListingStatus.SOLD);
         ReflectionTestUtils.setField(bought, "buyerId", session.userId());
         listingRepository.save(bought);
-        listingRepository.save(new Listing("Rug", "Wool rug", new BigDecimal("60.00"),
+        listingRepository.save(listing("Rug", "Wool rug", new BigDecimal("60.00"),
                 Category.HOME_AND_GARDEN, "rug.jpg", session.userId() + 1));
 
         mockMvc.perform(get("/api/listings/mine/bought")
@@ -489,5 +496,251 @@ class ListingsApiTest {
                 .andExpect(jsonPath("$[*].title", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("Rug"))))
                 .andExpect(jsonPath("$[*].buyerId", org.hamcrest.Matchers.everyItem(
                         org.hamcrest.Matchers.equalTo(session.userId().intValue()))));
+    }
+
+    @Test
+    void addingAPhotoWithoutAuthenticationIsRejected() throws Exception {
+        Listing listing = listingRepository.save(listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", 1L));
+
+        mockMvc.perform(multipart("/api/listings/{id}/photos", listing.getId())
+                        .file(photoPart()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void addingAPhotoToAnotherUsersListingIsRejected() throws Exception {
+        Session session = registerAndLoginSession("victor");
+        Listing listing = listingRepository.save(listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId() + 1));
+
+        mockMvc.perform(multipart("/api/listings/{id}/photos", listing.getId())
+                        .file(photoPart())
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void addingAPhotoToASoldListingIsRejected() throws Exception {
+        Session session = registerAndLoginSession("wendy");
+        Listing listing = listingRepository.save(listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId()));
+        ReflectionTestUtils.setField(listing, "status", ListingStatus.SOLD);
+        listingRepository.save(listing);
+
+        mockMvc.perform(multipart("/api/listings/{id}/photos", listing.getId())
+                        .file(photoPart())
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void addingAPhotoAppendsItAfterTheExistingOnes() throws Exception {
+        Session session = registerAndLoginSession("xena");
+        Listing listing = listingRepository.save(listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId()));
+
+        mockMvc.perform(multipart("/api/listings/{id}/photos", listing.getId())
+                        .file(photoPart())
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.photos.length()").value(2))
+                .andExpect(jsonPath("$.photos[0].reference").value("scooter.jpg"))
+                .andExpect(jsonPath("$.photos[1].reference", org.hamcrest.Matchers.startsWith("/api/photos/")));
+    }
+
+    @Test
+    void addingASeventhPhotoIsRejected() throws Exception {
+        Session session = registerAndLoginSession("yusuf");
+        Listing listing = listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId());
+        for (int i = 1; i < 6; i++) {
+            listing.addPhoto(new Photo(listing, "extra-" + i + ".jpg", i));
+        }
+        listingRepository.save(listing);
+
+        mockMvc.perform(multipart("/api/listings/{id}/photos", listing.getId())
+                        .file(photoPart())
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void removingAPhotoWithoutAuthenticationIsRejected() throws Exception {
+        Listing listing = listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", 1L);
+        listing.addPhoto(new Photo(listing, "extra.jpg", 1));
+        Listing saved = listingRepository.save(listing);
+        Long photoId = saved.getPhotos().get(1).getId();
+
+        mockMvc.perform(delete("/api/listings/{id}/photos/{photoId}", saved.getId(), photoId))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void removingAnotherUsersListingPhotoIsRejected() throws Exception {
+        Session session = registerAndLoginSession("zara");
+        Listing listing = listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId() + 1);
+        listing.addPhoto(new Photo(listing, "extra.jpg", 1));
+        Listing saved = listingRepository.save(listing);
+        Long photoId = saved.getPhotos().get(1).getId();
+
+        mockMvc.perform(delete("/api/listings/{id}/photos/{photoId}", saved.getId(), photoId)
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void removingAPhotoFromASoldListingIsRejected() throws Exception {
+        Session session = registerAndLoginSession("amir");
+        Listing listing = listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId());
+        listing.addPhoto(new Photo(listing, "extra.jpg", 1));
+        Listing saved = listingRepository.save(listing);
+        ReflectionTestUtils.setField(saved, "status", ListingStatus.SOLD);
+        listingRepository.save(saved);
+        Long photoId = saved.getPhotos().get(1).getId();
+
+        mockMvc.perform(delete("/api/listings/{id}/photos/{photoId}", saved.getId(), photoId)
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void removingTheLastRemainingPhotoIsRejected() throws Exception {
+        Session session = registerAndLoginSession("bianca");
+        Listing saved = listingRepository.save(listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId()));
+        Long photoId = saved.getPhotos().get(0).getId();
+
+        mockMvc.perform(delete("/api/listings/{id}/photos/{photoId}", saved.getId(), photoId)
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void removingAnUnknownPhotoIdIsRejected() throws Exception {
+        Session session = registerAndLoginSession("carlos");
+        Listing listing = listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId());
+        listing.addPhoto(new Photo(listing, "extra.jpg", 1));
+        Listing saved = listingRepository.save(listing);
+
+        mockMvc.perform(delete("/api/listings/{id}/photos/{photoId}", saved.getId(), 999999)
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void removingAPhotoDeletesItAndLeavesTheRemainingOnes() throws Exception {
+        Session session = registerAndLoginSession("dalia");
+        Listing listing = listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId());
+        listing.addPhoto(new Photo(listing, "extra.jpg", 1));
+        Listing saved = listingRepository.save(listing);
+        Long photoId = saved.getPhotos().get(0).getId();
+
+        mockMvc.perform(delete("/api/listings/{id}/photos/{photoId}", saved.getId(), photoId)
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.photos.length()").value(1))
+                .andExpect(jsonPath("$.photos[0].reference").value("extra.jpg"));
+    }
+
+    @Test
+    void reorderingPhotosWithoutAuthenticationIsRejected() throws Exception {
+        Listing listing = listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", 1L);
+        listing.addPhoto(new Photo(listing, "extra.jpg", 1));
+        Listing saved = listingRepository.save(listing);
+        List<Long> ids = saved.getPhotos().stream().map(Photo::getId).toList();
+
+        mockMvc.perform(put("/api/listings/{id}/photos/order", saved.getId())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of("photoIds", ids))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void reorderingAnotherUsersListingPhotosIsRejected() throws Exception {
+        Session session = registerAndLoginSession("felix");
+        Listing listing = listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId() + 1);
+        listing.addPhoto(new Photo(listing, "extra.jpg", 1));
+        Listing saved = listingRepository.save(listing);
+        List<Long> ids = saved.getPhotos().stream().map(Photo::getId).toList();
+
+        mockMvc.perform(put("/api/listings/{id}/photos/order", saved.getId())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of("photoIds", ids)))
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void reorderingPhotosOnASoldListingIsRejected() throws Exception {
+        Session session = registerAndLoginSession("gracie");
+        Listing listing = listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId());
+        listing.addPhoto(new Photo(listing, "extra.jpg", 1));
+        Listing saved = listingRepository.save(listing);
+        ReflectionTestUtils.setField(saved, "status", ListingStatus.SOLD);
+        listingRepository.save(saved);
+        List<Long> ids = saved.getPhotos().stream().map(Photo::getId).toList();
+
+        mockMvc.perform(put("/api/listings/{id}/photos/order", saved.getId())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of("photoIds", ids)))
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void reorderingWithAMismatchedPhotoIdSetIsRejected() throws Exception {
+        Session session = registerAndLoginSession("hank");
+        Listing saved = listingRepository.save(listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId()));
+
+        mockMvc.perform(put("/api/listings/{id}/photos/order", saved.getId())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of("photoIds", List.of(999999))))
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void reorderingPhotosChangesTheirOrderAndTheCoverPhotoInSubsequentResponses() throws Exception {
+        Session session = registerAndLoginSession("ivy");
+        Listing listing = listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "front.jpg", session.userId());
+        listing.addPhoto(new Photo(listing, "back.jpg", 1));
+        Listing saved = listingRepository.save(listing);
+        Long frontId = saved.getPhotos().get(0).getId();
+        Long backId = saved.getPhotos().get(1).getId();
+
+        mockMvc.perform(put("/api/listings/{id}/photos/order", saved.getId())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of("photoIds", List.of(backId, frontId))))
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.photos[0].reference").value("back.jpg"))
+                .andExpect(jsonPath("$.photos[1].reference").value("front.jpg"));
+
+        mockMvc.perform(get("/api/listings/{id}", saved.getId()))
+                .andExpect(jsonPath("$.photos[0].reference").value("back.jpg"));
     }
 }

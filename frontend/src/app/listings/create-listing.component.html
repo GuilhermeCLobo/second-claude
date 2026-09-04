@@ -23,8 +23,8 @@
   </label>
 
   <label>
-    Photo
-    <input type="file" accept="image/*" name="photo" (change)="onPhotoSelected($event)" />
+    Photos
+    <input type="file" accept="image/*" name="photo" multiple (change)="onPhotoSelected($event)" />
   </label>
 
   <button type="submit" [disabled]="!canSubmit">Post listing</button>

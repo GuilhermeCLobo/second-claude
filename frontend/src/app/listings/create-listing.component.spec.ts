@@ -25,12 +25,19 @@ describe('CreateListingComponent', () => {
   });
 
   function setPhoto(): File {
+    return setPhotos(1)[0];
+  }
+
+  function setPhotos(count: number): File[] {
     const element: HTMLElement = fixture.nativeElement;
     const photoInput: HTMLInputElement = element.querySelector('input[name="photo"]')!;
-    const photo = new File(['fake-photo-bytes'], 'camera.jpg', { type: 'image/jpeg' });
-    Object.defineProperty(photoInput, 'files', { value: [photo] });
+    const photos = Array.from(
+      { length: count },
+      (_, i) => new File(['fake-photo-bytes'], `photo-${i}.jpg`, { type: 'image/jpeg' }),
+    );
+    Object.defineProperty(photoInput, 'files', { value: photos });
     photoInput.dispatchEvent(new Event('change'));
-    return photo;
+    return photos;
   }
 
   function fillAndSubmit(includePhoto = true): void {
@@ -72,7 +79,7 @@ describe('CreateListingComponent', () => {
       description: 'Digital camera',
       price: 200,
       category: 'ELECTRONICS',
-      photoReference: '/api/photos/camera.jpg',
+      photos: [{ id: 1, reference: '/api/photos/camera.jpg' }],
       status: 'ACTIVE',
       ownerId: 1,
       buyerId: null,
@@ -104,5 +111,55 @@ describe('CreateListingComponent', () => {
     const button: HTMLButtonElement = fixture.nativeElement.querySelector('button[type="submit"]');
     expect(button.disabled).toBeTrue();
     httpMock.expectNone((request) => request.url === '/api/listings');
+  });
+
+  it('chains add-photo calls for any photos beyond the first, then navigates', () => {
+    const router = TestBed.inject(Router);
+    const navigateSpy = spyOn(router, 'navigate');
+
+    const element: HTMLElement = fixture.nativeElement;
+    const title: HTMLInputElement = element.querySelector('input[name="title"]')!;
+    const description: HTMLTextAreaElement = element.querySelector('textarea[name="description"]')!;
+    const price: HTMLInputElement = element.querySelector('input[name="price"]')!;
+    const category: HTMLSelectElement = element.querySelector('select[name="category"]')!;
+    title.value = 'Camera';
+    title.dispatchEvent(new Event('input'));
+    description.value = 'Digital camera';
+    description.dispatchEvent(new Event('input'));
+    price.value = '200';
+    price.dispatchEvent(new Event('input'));
+    category.value = 'ELECTRONICS';
+    category.dispatchEvent(new Event('change'));
+    setPhotos(3);
+    fixture.detectChanges();
+    element.querySelector('form')!.dispatchEvent(new Event('submit'));
+
+    const created: Listing = {
+      id: 5,
+      title: 'Camera',
+      description: 'Digital camera',
+      price: 200,
+      category: 'ELECTRONICS',
+      photos: [{ id: 1, reference: '/api/photos/photo-0.jpg' }],
+      status: 'ACTIVE',
+      ownerId: 1,
+      buyerId: null,
+    };
+    httpMock.expectOne((request) => request.url === '/api/listings' && request.method === 'POST').flush(created);
+
+    const secondPhotoReq = httpMock.expectOne(
+      (request) => request.url === '/api/listings/5/photos' && request.method === 'POST',
+    );
+    secondPhotoReq.flush({ ...created, photos: [...created.photos, { id: 2, reference: '/api/photos/photo-1.jpg' }] });
+
+    const thirdPhotoReq = httpMock.expectOne(
+      (request) => request.url === '/api/listings/5/photos' && request.method === 'POST',
+    );
+    thirdPhotoReq.flush({
+      ...created,
+      photos: [...created.photos, { id: 3, reference: '/api/photos/photo-2.jpg' }],
+    });
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/listings', 5]);
   });
 });

@@ -5,10 +5,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class ListingService {
+
+    private static final int MAX_PHOTOS = 6;
 
     private final ListingRepository listingRepository;
     private final PhotoStore photoStore;
@@ -43,14 +50,13 @@ public class ListingService {
         if (photo == null || photo.isEmpty()) {
             throw new MissingPhotoException();
         }
-        String photoReference = "/api/photos/" + photoStore.store(photo);
         Listing listing = new Listing(request.title(), request.description(), request.price(),
-                request.category(), photoReference, ownerId);
+                request.category(), ownerId);
+        listing.addPhoto(new Photo(listing, storeReference(photo), 0));
         Listing saved = listingRepository.save(listing);
         return ListingResponse.from(saved);
     }
 
-    @Transactional
     public ListingResponse buy(Long id, Long requesterId) {
         Listing listing = listingRepository.findById(id)
                 .orElseThrow(() -> new ListingNotFoundException(id));
@@ -67,20 +73,60 @@ public class ListingService {
     }
 
     public ListingResponse edit(Long id, CreateListingRequest request, Long requesterId) {
-        Listing listing = listingRepository.findById(id)
-                .orElseThrow(() -> new ListingNotFoundException(id));
-        if (!listing.getOwnerId().equals(requesterId)) {
-            throw new NotListingOwnerException();
-        }
-        if (listing.getStatus() != ListingStatus.ACTIVE) {
-            throw new ListingNotActiveException();
-        }
+        Listing listing = ownedActiveListing(id, requesterId);
         listing.update(request.title(), request.description(), request.price(), request.category());
         Listing saved = listingRepository.save(listing);
         return ListingResponse.from(saved);
     }
 
     public void delete(Long id, Long requesterId) {
+        Listing listing = ownedActiveListing(id, requesterId);
+        listingRepository.delete(listing);
+    }
+
+    public ListingResponse addPhoto(Long id, MultipartFile photo, Long requesterId) {
+        if (photo == null || photo.isEmpty()) {
+            throw new MissingPhotoException();
+        }
+        Listing listing = ownedActiveListing(id, requesterId);
+        if (listing.getPhotos().size() >= MAX_PHOTOS) {
+            throw new PhotoLimitExceededException();
+        }
+        listing.addPhoto(new Photo(listing, storeReference(photo), listing.getPhotos().size()));
+        Listing saved = listingRepository.save(listing);
+        return ListingResponse.from(saved);
+    }
+
+    public ListingResponse removePhoto(Long id, Long photoId, Long requesterId) {
+        Listing listing = ownedActiveListing(id, requesterId);
+        if (listing.getPhotos().size() <= 1) {
+            throw new LastPhotoException();
+        }
+        Photo photo = listing.getPhotos().stream()
+                .filter(p -> p.getId().equals(photoId))
+                .findFirst()
+                .orElseThrow(() -> new ListingPhotoNotFoundException(photoId));
+        listing.removePhoto(photo);
+        Listing saved = listingRepository.save(listing);
+        return ListingResponse.from(saved);
+    }
+
+    public ListingResponse reorderPhotos(Long id, List<Long> photoIds, Long requesterId) {
+        Listing listing = ownedActiveListing(id, requesterId);
+        Set<Long> currentIds = listing.getPhotos().stream().map(Photo::getId).collect(Collectors.toSet());
+        if (photoIds.size() != currentIds.size() || !currentIds.equals(new HashSet<>(photoIds))) {
+            throw new InvalidPhotoOrderException();
+        }
+        Map<Long, Photo> photosById = listing.getPhotos().stream()
+                .collect(Collectors.toMap(Photo::getId, photo -> photo));
+        for (int i = 0; i < photoIds.size(); i++) {
+            photosById.get(photoIds.get(i)).setSortOrder(i);
+        }
+        Listing saved = listingRepository.save(listing);
+        return ListingResponse.from(saved);
+    }
+
+    private Listing ownedActiveListing(Long id, Long requesterId) {
         Listing listing = listingRepository.findById(id)
                 .orElseThrow(() -> new ListingNotFoundException(id));
         if (!listing.getOwnerId().equals(requesterId)) {
@@ -89,6 +135,10 @@ public class ListingService {
         if (listing.getStatus() != ListingStatus.ACTIVE) {
             throw new ListingNotActiveException();
         }
-        listingRepository.delete(listing);
+        return listing;
+    }
+
+    private String storeReference(MultipartFile photo) {
+        return "/api/photos/" + photoStore.store(photo);
     }
 }

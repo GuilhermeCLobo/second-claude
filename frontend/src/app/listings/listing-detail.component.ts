@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -6,6 +7,8 @@ import { AuthService } from '../auth/auth.service';
 import { CATEGORIES } from './category';
 import { Listing } from './listing.model';
 import { ListingsService } from './listings.service';
+
+const MAX_PHOTOS = 6;
 
 @Component({
   selector: 'app-listing-detail',
@@ -15,10 +18,15 @@ import { ListingsService } from './listings.service';
 })
 export class ListingDetailComponent implements OnInit {
   readonly categories = CATEGORIES;
+  readonly maxPhotos = MAX_PHOTOS;
   listing: Listing | null = null;
   notFound = false;
   deleteError = '';
   buyError = '';
+  addPhotoError = '';
+  removePhotoError = '';
+  reorderError = '';
+  selectedNewPhoto: File | null = null;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -59,6 +67,10 @@ export class ListingDetailComponent implements OnInit {
     );
   }
 
+  canManagePhotos(): boolean {
+    return this.canEdit();
+  }
+
   edit(): void {
     if (!this.listing) {
       return;
@@ -97,6 +109,64 @@ export class ListingDetailComponent implements OnInit {
       },
       error: () => {
         this.buyError = 'Could not buy this listing.';
+      },
+    });
+  }
+
+  onNewPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.selectedNewPhoto = input.files?.[0] ?? null;
+  }
+
+  addPhoto(): void {
+    if (!this.listing || !this.selectedNewPhoto) {
+      return;
+    }
+    this.addPhotoError = '';
+    this.listingsService.addPhoto(this.listing.id, this.selectedNewPhoto).subscribe({
+      next: (listing) => {
+        this.listing = listing;
+        this.selectedNewPhoto = null;
+      },
+      error: (error: HttpErrorResponse) => {
+        this.addPhotoError = error.error?.message ?? 'Could not add photo.';
+      },
+    });
+  }
+
+  removePhoto(photoId: number): void {
+    if (!this.listing) {
+      return;
+    }
+    this.removePhotoError = '';
+    this.listingsService.removePhoto(this.listing.id, photoId).subscribe({
+      next: (listing) => {
+        this.listing = listing;
+      },
+      error: (error: HttpErrorResponse) => {
+        this.removePhotoError = error.error?.message ?? 'Could not remove photo.';
+      },
+    });
+  }
+
+  movePhoto(index: number, direction: -1 | 1): void {
+    if (!this.listing) {
+      return;
+    }
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= this.listing.photos.length) {
+      return;
+    }
+    const photoIds = this.listing.photos.map((photo) => photo.id);
+    [photoIds[index], photoIds[targetIndex]] = [photoIds[targetIndex], photoIds[index]];
+
+    this.reorderError = '';
+    this.listingsService.reorderPhotos(this.listing.id, photoIds).subscribe({
+      next: (listing) => {
+        this.listing = listing;
+      },
+      error: (error: HttpErrorResponse) => {
+        this.reorderError = error.error?.message ?? 'Could not reorder photos.';
       },
     });
   }

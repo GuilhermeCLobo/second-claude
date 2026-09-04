@@ -35,4 +35,24 @@ public class ListingExceptionHandler {
     public ResponseEntity<Map<String, String>> handleCannotBuyOwnListing(CannotBuyOwnListingException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
     }
+
+    @ExceptionHandler(PhotoLimitExceededException.class)
+    public ResponseEntity<Map<String, String>> handlePhotoLimitExceeded(PhotoLimitExceededException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(LastPhotoException.class)
+    public ResponseEntity<Map<String, String>> handleLastPhoto(LastPhotoException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ListingPhotoNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleListingPhotoNotFound(ListingPhotoNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidPhotoOrderException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidPhotoOrder(InvalidPhotoOrderException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", ex.getMessage()));
+    }
 }

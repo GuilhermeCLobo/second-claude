@@ -1,5 +1,6 @@
 package com.marketplace.backend.listing;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -7,9 +8,13 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "listing")
@@ -32,8 +37,9 @@ public class Listing {
     @Column(nullable = false)
     private Category category;
 
-    @Column(name = "photo_reference")
-    private String photoReference;
+    @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC")
+    private List<Photo> photos = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -47,13 +53,11 @@ public class Listing {
     protected Listing() {
     }
 
-    public Listing(String title, String description, BigDecimal price, Category category,
-                   String photoReference, Long ownerId) {
+    public Listing(String title, String description, BigDecimal price, Category category, Long ownerId) {
         this.title = title;
         this.description = description;
         this.price = price;
         this.category = category;
-        this.photoReference = photoReference;
         this.ownerId = ownerId;
         this.status = ListingStatus.ACTIVE;
     }
@@ -78,8 +82,8 @@ public class Listing {
         return category;
     }
 
-    public String getPhotoReference() {
-        return photoReference;
+    public List<Photo> getPhotos() {
+        return photos;
     }
 
     public ListingStatus getStatus() {
@@ -99,5 +103,13 @@ public class Listing {
         this.description = description;
         this.price = price;
         this.category = category;
+    }
+
+    void addPhoto(Photo photo) {
+        photos.add(photo);
+    }
+
+    void removePhoto(Photo photo) {
+        photos.remove(photo);
     }
 }

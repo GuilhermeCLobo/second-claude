@@ -47,6 +47,20 @@ export class ListingsService {
     return this.http.post<Listing>(`/api/listings/${id}/buy`, {});
   }
 
+  addPhoto(id: number, photo: File): Observable<Listing> {
+    const formData = new FormData();
+    formData.append('photo', photo);
+    return this.http.post<Listing>(`/api/listings/${id}/photos`, formData);
+  }
+
+  removePhoto(id: number, photoId: number): Observable<Listing> {
+    return this.http.delete<Listing>(`/api/listings/${id}/photos/${photoId}`);
+  }
+
+  reorderPhotos(id: number, photoIds: number[]): Observable<Listing> {
+    return this.http.put<Listing>(`/api/listings/${id}/photos/order`, { photoIds });
+  }
+
   myPosted(): Observable<Listing[]> {
     return this.http.get<Listing[]>('/api/listings/mine/posted');
   }

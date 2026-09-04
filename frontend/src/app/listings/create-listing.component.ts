@@ -7,6 +7,8 @@ import { Router } from '@angular/router';
 import { CATEGORIES, Category } from './category';
 import { ListingsService } from './listings.service';
 
+const MAX_PHOTOS = 6;
+
 @Component({
   selector: 'app-create-listing',
   standalone: true,
@@ -23,7 +25,7 @@ export class CreateListingComponent {
   });
 
   errorMessage: string | null = null;
-  selectedPhoto: File | null = null;
+  selectedPhotos: File[] = [];
 
   constructor(
     private readonly listingsService: ListingsService,
@@ -32,29 +34,40 @@ export class CreateListingComponent {
 
   onPhotoSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.selectedPhoto = input.files?.[0] ?? null;
+    this.selectedPhotos = Array.from(input.files ?? []).slice(0, MAX_PHOTOS);
   }
 
   get canSubmit(): boolean {
-    return this.form.valid && this.selectedPhoto !== null;
+    return this.form.valid && this.selectedPhotos.length > 0;
   }
 
   submit(): void {
-    if (!this.selectedPhoto) {
+    if (this.selectedPhotos.length === 0) {
       return;
     }
     this.errorMessage = null;
     const { title, description, price, category } = this.form.getRawValue();
+    const [firstPhoto, ...remainingPhotos] = this.selectedPhotos;
 
     this.listingsService
-      .create({ title, description, price: price as number, category: category as Category }, this.selectedPhoto)
+      .create({ title, description, price: price as number, category: category as Category }, firstPhoto)
       .subscribe({
-        next: (listing) => {
-          this.router.navigate(['/listings', listing.id]);
-        },
+        next: (listing) => this.addRemainingPhotos(listing.id, remainingPhotos),
         error: (error: HttpErrorResponse) => {
           this.errorMessage = error.error?.message ?? 'Could not create listing. Please try again.';
         },
       });
+  }
+
+  private addRemainingPhotos(listingId: number, photos: File[]): void {
+    if (photos.length === 0) {
+      this.router.navigate(['/listings', listingId]);
+      return;
+    }
+    const [next, ...rest] = photos;
+    this.listingsService.addPhoto(listingId, next).subscribe({
+      next: () => this.addRemainingPhotos(listingId, rest),
+      error: () => this.router.navigate(['/listings', listingId]),
+    });
   }
 }

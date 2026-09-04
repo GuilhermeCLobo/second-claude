@@ -21,28 +21,50 @@ describe('ListingsService', () => {
     httpMock.verify();
   });
 
-  it('fetches all listings when no category is given', () => {
-    let result: Listing[] | undefined;
+  it('fetches all listings with no query params when no filters are given', () => {
+    let result: { listings: Listing[]; totalCount: number } | undefined;
 
-    service.browse().subscribe((listings) => {
-      result = listings;
+    service.browse().subscribe((response) => {
+      result = response;
     });
 
     const req = httpMock.expectOne((request) => request.url === '/api/listings');
     expect(req.request.params.has('category')).toBeFalse();
+    expect(req.request.params.has('search')).toBeFalse();
+    expect(req.request.params.has('minPrice')).toBeFalse();
+    expect(req.request.params.has('maxPrice')).toBeFalse();
+    expect(req.request.params.has('sort')).toBeFalse();
+    expect(req.request.params.has('page')).toBeFalse();
+    expect(req.request.params.has('size')).toBeFalse();
 
-    req.flush([]);
+    req.flush({ listings: [], totalCount: 0 });
 
-    expect(result).toEqual([]);
+    expect(result).toEqual({ listings: [], totalCount: 0 });
   });
 
   it('sends the category as a query parameter when filtering', () => {
-    service.browse('ELECTRONICS').subscribe();
+    service.browse({ category: 'ELECTRONICS' }).subscribe();
 
     const req = httpMock.expectOne((request) => request.url === '/api/listings');
     expect(req.request.params.get('category')).toBe('ELECTRONICS');
 
-    req.flush([]);
+    req.flush({ listings: [], totalCount: 0 });
+  });
+
+  it('sends search, price range, sort, and pagination as query parameters', () => {
+    service
+      .browse({ search: 'camera', minPrice: 10, maxPrice: 100, sort: 'PRICE_ASC', page: 2, size: 24 })
+      .subscribe();
+
+    const req = httpMock.expectOne((request) => request.url === '/api/listings');
+    expect(req.request.params.get('search')).toBe('camera');
+    expect(req.request.params.get('minPrice')).toBe('10');
+    expect(req.request.params.get('maxPrice')).toBe('100');
+    expect(req.request.params.get('sort')).toBe('PRICE_ASC');
+    expect(req.request.params.get('page')).toBe('2');
+    expect(req.request.params.get('size')).toBe('24');
+
+    req.flush({ listings: [], totalCount: 0 });
   });
 
   it('posts a new listing as multipart form data with the listing fields and the photo', (done) => {

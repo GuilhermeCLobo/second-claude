@@ -80,7 +80,7 @@ class ListingsApiTest {
     }
 
     @Test
-    void browsingWithoutACategoryReturnsAllListingsIncludingSoldOnes() throws Exception {
+    void browsingByDefaultExcludesSoldListings() throws Exception {
         listingRepository.save(listing("Bike", "Road bike", new BigDecimal("150.00"),
                 Category.VEHICLES, "bike.jpg", 1L));
         Listing soldListing = listingRepository.save(listing("Sofa", "Comfy sofa", new BigDecimal("300.00"),
@@ -90,8 +90,8 @@ class ListingsApiTest {
 
         mockMvc.perform(get("/api/listings"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.title == 'Bike')].status").value("ACTIVE"))
-                .andExpect(jsonPath("$[?(@.title == 'Sofa')].status").value("SOLD"));
+                .andExpect(jsonPath("$.listings[*].title", org.hamcrest.Matchers.hasItem("Bike")))
+                .andExpect(jsonPath("$.listings[*].title", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("Sofa"))));
     }
 
     @Test
@@ -103,8 +103,146 @@ class ListingsApiTest {
 
         mockMvc.perform(get("/api/listings").param("category", "ELECTRONICS"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[*].title", org.hamcrest.Matchers.hasItem("Laptop")))
-                .andExpect(jsonPath("$[*].title", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("Desk"))));
+                .andExpect(jsonPath("$.listings[*].title", org.hamcrest.Matchers.hasItem("Laptop")))
+                .andExpect(jsonPath("$.listings[*].title", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("Desk"))));
+    }
+
+    @Test
+    void searchMatchesCaseInsensitivelyAgainstTitleOnly() throws Exception {
+        listingRepository.save(listing("Vintage Lensmaster9000", "Old but working", new BigDecimal("80.00"),
+                Category.ELECTRONICS, "camera.jpg", 3L));
+        listingRepository.save(listing("Desk", "Wooden desk", new BigDecimal("120.00"),
+                Category.FURNITURE, "desk.jpg", 3L));
+
+        mockMvc.perform(get("/api/listings").param("search", "LENSMASTER9000"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.listings[*].title", org.hamcrest.Matchers.contains("Vintage Lensmaster9000")))
+                .andExpect(jsonPath("$.totalCount").value(1));
+    }
+
+    @Test
+    void searchMatchesCaseInsensitivelyAgainstDescriptionOnly() throws Exception {
+        listingRepository.save(listing("Old Photo Equipment", "A vintage SHUTTERPRO7000 in good shape",
+                new BigDecimal("80.00"), Category.ELECTRONICS, "camera.jpg", 3L));
+        listingRepository.save(listing("Desk", "Wooden desk", new BigDecimal("120.00"),
+                Category.FURNITURE, "desk.jpg", 3L));
+
+        mockMvc.perform(get("/api/listings").param("search", "shutterpro7000"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.listings[*].title", org.hamcrest.Matchers.contains("Old Photo Equipment")))
+                .andExpect(jsonPath("$.totalCount").value(1));
+    }
+
+    @Test
+    void searchMatchingNeitherTitleNorDescriptionReturnsNoResults() throws Exception {
+        listingRepository.save(listing("Desk", "Wooden desk", new BigDecimal("120.00"),
+                Category.FURNITURE, "desk.jpg", 3L));
+
+        mockMvc.perform(get("/api/listings").param("search", "unobtainium1975xyz"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.listings").isArray())
+                .andExpect(jsonPath("$.listings.length()").value(0))
+                .andExpect(jsonPath("$.totalCount").value(0));
+    }
+
+    @Test
+    void priceRangeFiltersCombineWithMinOnlyMaxOnlyBothAndNeitherAndWithSearch() throws Exception {
+        listingRepository.save(listing("Cheap Pricewidget", "A cheap item", new BigDecimal("10.00"),
+                Category.OTHER, "cheap.jpg", 4L));
+        listingRepository.save(listing("Mid Pricewidget", "A mid-priced item", new BigDecimal("50.00"),
+                Category.OTHER, "mid.jpg", 4L));
+        listingRepository.save(listing("Pricey Pricewidget", "An expensive item", new BigDecimal("100.00"),
+                Category.OTHER, "pricey.jpg", 4L));
+
+        mockMvc.perform(get("/api/listings").param("search", "Pricewidget").param("minPrice", "40"))
+                .andExpect(jsonPath("$.listings[*].title",
+                        org.hamcrest.Matchers.containsInAnyOrder("Mid Pricewidget", "Pricey Pricewidget")));
+
+        mockMvc.perform(get("/api/listings").param("search", "Pricewidget").param("maxPrice", "60"))
+                .andExpect(jsonPath("$.listings[*].title",
+                        org.hamcrest.Matchers.containsInAnyOrder("Cheap Pricewidget", "Mid Pricewidget")));
+
+        mockMvc.perform(get("/api/listings").param("search", "Pricewidget")
+                        .param("minPrice", "40").param("maxPrice", "60"))
+                .andExpect(jsonPath("$.listings[*].title", org.hamcrest.Matchers.contains("Mid Pricewidget")));
+
+        mockMvc.perform(get("/api/listings").param("search", "Pricewidget"))
+                .andExpect(jsonPath("$.listings[*].title", org.hamcrest.Matchers.containsInAnyOrder(
+                        "Cheap Pricewidget", "Mid Pricewidget", "Pricey Pricewidget")));
+    }
+
+    @Test
+    void sortingByPriceAscendingAndDescendingOrdersResultsCorrectly() throws Exception {
+        listingRepository.save(listing("Mid Sortwidget", "Mid item", new BigDecimal("50.00"),
+                Category.OTHER, "mid.jpg", 5L));
+        listingRepository.save(listing("Cheap Sortwidget", "Cheap item", new BigDecimal("10.00"),
+                Category.OTHER, "cheap.jpg", 5L));
+        listingRepository.save(listing("Pricey Sortwidget", "Pricey item", new BigDecimal("100.00"),
+                Category.OTHER, "pricey.jpg", 5L));
+
+        mockMvc.perform(get("/api/listings").param("search", "Sortwidget").param("sort", "PRICE_ASC"))
+                .andExpect(jsonPath("$.listings[0].title").value("Cheap Sortwidget"))
+                .andExpect(jsonPath("$.listings[1].title").value("Mid Sortwidget"))
+                .andExpect(jsonPath("$.listings[2].title").value("Pricey Sortwidget"));
+
+        mockMvc.perform(get("/api/listings").param("search", "Sortwidget").param("sort", "PRICE_DESC"))
+                .andExpect(jsonPath("$.listings[0].title").value("Pricey Sortwidget"))
+                .andExpect(jsonPath("$.listings[1].title").value("Mid Sortwidget"))
+                .andExpect(jsonPath("$.listings[2].title").value("Cheap Sortwidget"));
+    }
+
+    @Test
+    void sortingByNewestOrdersByCreationTimeMostRecentFirstAndIsTheDefault() throws Exception {
+        Listing first = listingRepository.save(listing("First Newestwidget", "Posted first", new BigDecimal("10.00"),
+                Category.OTHER, "first.jpg", 6L));
+        ReflectionTestUtils.setField(first, "createdAt", java.time.Instant.now().minusSeconds(120));
+        listingRepository.save(first);
+        Listing second = listingRepository.save(listing("Second Newestwidget", "Posted second", new BigDecimal("10.00"),
+                Category.OTHER, "second.jpg", 6L));
+        ReflectionTestUtils.setField(second, "createdAt", java.time.Instant.now().minusSeconds(60));
+        listingRepository.save(second);
+        Listing third = listingRepository.save(listing("Third Newestwidget", "Posted third", new BigDecimal("10.00"),
+                Category.OTHER, "third.jpg", 6L));
+        listingRepository.save(third);
+
+        mockMvc.perform(get("/api/listings").param("search", "Newestwidget"))
+                .andExpect(jsonPath("$.listings[0].title").value("Third Newestwidget"))
+                .andExpect(jsonPath("$.listings[1].title").value("Second Newestwidget"))
+                .andExpect(jsonPath("$.listings[2].title").value("First Newestwidget"));
+    }
+
+    @Test
+    void paginationReturnsTheRequestedPageAndTheTotalCount() throws Exception {
+        for (int i = 1; i <= 5; i++) {
+            listingRepository.save(listing("Pagewidget " + i, "Description " + i, new BigDecimal(i + ".00"),
+                    Category.OTHER, "item" + i + ".jpg", 7L));
+        }
+
+        mockMvc.perform(get("/api/listings").param("search", "Pagewidget")
+                        .param("sort", "PRICE_ASC").param("page", "0").param("size", "2"))
+                .andExpect(jsonPath("$.listings.length()").value(2))
+                .andExpect(jsonPath("$.listings[0].title").value("Pagewidget 1"))
+                .andExpect(jsonPath("$.listings[1].title").value("Pagewidget 2"))
+                .andExpect(jsonPath("$.totalCount").value(5));
+
+        mockMvc.perform(get("/api/listings").param("search", "Pagewidget")
+                        .param("sort", "PRICE_ASC").param("page", "2").param("size", "2"))
+                .andExpect(jsonPath("$.listings.length()").value(1))
+                .andExpect(jsonPath("$.listings[0].title").value("Pagewidget 5"))
+                .andExpect(jsonPath("$.totalCount").value(5));
+    }
+
+    @Test
+    void pageSizeIsCappedAt48EvenWhenALargerSizeIsRequested() throws Exception {
+        for (int i = 1; i <= 50; i++) {
+            listingRepository.save(listing("Capwidget " + i, "Description " + i, new BigDecimal("10.00"),
+                    Category.OTHER, "capped" + i + ".jpg", 8L));
+        }
+
+        mockMvc.perform(get("/api/listings").param("search", "Capwidget").param("size", "500"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.listings.length()").value(48))
+                .andExpect(jsonPath("$.totalCount").value(50));
     }
 
     @Test
@@ -190,7 +328,7 @@ class ListingsApiTest {
         String photoReference = objectMapper.readTree(response).get("photos").get(0).get("reference").asText();
 
         mockMvc.perform(get("/api/listings"))
-                .andExpect(jsonPath("$[?(@.id == " + id + ")].title").value("Vintage Camera"));
+                .andExpect(jsonPath("$.listings[?(@.id == " + id + ")].title").value("Vintage Camera"));
 
         mockMvc.perform(get("/api/listings/{id}", id))
                 .andExpect(status().isOk())

@@ -13,6 +13,7 @@ import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,6 +51,9 @@ public class Listing {
 
     private Long buyerId;
 
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
+
     protected Listing() {
     }
 
@@ -60,6 +64,7 @@ public class Listing {
         this.category = category;
         this.ownerId = ownerId;
         this.status = ListingStatus.ACTIVE;
+        this.createdAt = Instant.now();
     }
 
     public Long getId() {
@@ -96,6 +101,10 @@ public class Listing {
 
     public Long getBuyerId() {
         return buyerId;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 
     public void update(String title, String description, BigDecimal price, Category category) {

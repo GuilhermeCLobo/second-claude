@@ -18,3 +18,20 @@ export interface Listing {
   ownerId: number;
   buyerId: number | null;
 }
+
+export type ListingSort = 'NEWEST' | 'PRICE_ASC' | 'PRICE_DESC';
+
+export interface BrowseListingsParams {
+  category?: Category;
+  search?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: ListingSort;
+  page?: number;
+  size?: number;
+}
+
+export interface BrowseListingsResult {
+  listings: Listing[];
+  totalCount: number;
+}

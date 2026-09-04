@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { Category } from './category';
-import { Listing } from './listing.model';
+import { BrowseListingsParams, BrowseListingsResult, Listing } from './listing.model';
 
 export interface CreateListingRequest {
   title: string;
@@ -16,12 +16,30 @@ export interface CreateListingRequest {
 export class ListingsService {
   constructor(private readonly http: HttpClient) {}
 
-  browse(category?: Category): Observable<Listing[]> {
-    let params = new HttpParams();
-    if (category) {
-      params = params.set('category', category);
+  browse(params: BrowseListingsParams = {}): Observable<BrowseListingsResult> {
+    let httpParams = new HttpParams();
+    if (params.category) {
+      httpParams = httpParams.set('category', params.category);
     }
-    return this.http.get<Listing[]>('/api/listings', { params });
+    if (params.search) {
+      httpParams = httpParams.set('search', params.search);
+    }
+    if (params.minPrice != null) {
+      httpParams = httpParams.set('minPrice', params.minPrice);
+    }
+    if (params.maxPrice != null) {
+      httpParams = httpParams.set('maxPrice', params.maxPrice);
+    }
+    if (params.sort) {
+      httpParams = httpParams.set('sort', params.sort);
+    }
+    if (params.page != null) {
+      httpParams = httpParams.set('page', params.page);
+    }
+    if (params.size != null) {
+      httpParams = httpParams.set('size', params.size);
+    }
+    return this.http.get<BrowseListingsResult>('/api/listings', { params: httpParams });
   }
 
   getById(id: number): Observable<Listing> {

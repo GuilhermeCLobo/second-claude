@@ -1,10 +1,15 @@
 package com.marketplace.backend.listing;
 
 import com.marketplace.backend.photo.PhotoStore;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +21,8 @@ import java.util.stream.Collectors;
 public class ListingService {
 
     private static final int MAX_PHOTOS = 6;
+    static final int DEFAULT_PAGE_SIZE = 12;
+    static final int MAX_PAGE_SIZE = 48;
 
     private final ListingRepository listingRepository;
     private final PhotoStore photoStore;
@@ -25,11 +32,28 @@ public class ListingService {
         this.photoStore = photoStore;
     }
 
-    public List<ListingResponse> browse(Category category) {
-        List<Listing> listings = category == null
-                ? listingRepository.findAll()
-                : listingRepository.findByCategory(category);
-        return listings.stream().map(ListingResponse::from).toList();
+    public BrowseListingsResponse browse(Category category, String search, BigDecimal minPrice, BigDecimal maxPrice,
+                                          ListingSortOption sort, int page, int size) {
+        Specification<Listing> specification = ListingSpecifications.and(
+                ListingSpecifications.statusIs(ListingStatus.ACTIVE),
+                ListingSpecifications.categoryIs(category),
+                ListingSpecifications.matchesSearch(search),
+                ListingSpecifications.priceAtLeast(minPrice),
+                ListingSpecifications.priceAtMost(maxPrice));
+
+        int pageSize = Math.min(size < 1 ? DEFAULT_PAGE_SIZE : size, MAX_PAGE_SIZE);
+        int pageNumber = Math.max(page, 0);
+        Page<Listing> result = listingRepository.findAll(specification, PageRequest.of(pageNumber, pageSize, sortFor(sort)));
+        return BrowseListingsResponse.from(result);
+    }
+
+    private Sort sortFor(ListingSortOption sort) {
+        ListingSortOption effective = sort == null ? ListingSortOption.NEWEST : sort;
+        return switch (effective) {
+            case NEWEST -> Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
+            case PRICE_ASC -> Sort.by(Sort.Direction.ASC, "price").and(Sort.by(Sort.Direction.ASC, "id"));
+            case PRICE_DESC -> Sort.by(Sort.Direction.DESC, "price").and(Sort.by(Sort.Direction.ASC, "id"));
+        };
     }
 
     public ListingResponse getById(Long id) {

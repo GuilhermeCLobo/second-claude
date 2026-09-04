@@ -1,9 +1,33 @@
 <section>
   <label>
+    Search
+    <input type="text" placeholder="Search title or description" (change)="onSearchChange($event)" />
+  </label>
+
+  <label>
     Category
     <select (change)="onCategoryChange($event)">
       <option value="">All categories</option>
       <option *ngFor="let category of categories" [value]="category.value">{{ category.label }}</option>
+    </select>
+  </label>
+
+  <label>
+    Min price
+    <input type="number" min="0" (change)="onMinPriceChange($event)" />
+  </label>
+
+  <label>
+    Max price
+    <input type="number" min="0" (change)="onMaxPriceChange($event)" />
+  </label>
+
+  <label>
+    Sort by
+    <select (change)="onSortChange($event)">
+      <option value="NEWEST">Newest</option>
+      <option value="PRICE_ASC">Price: low to high</option>
+      <option value="PRICE_DESC">Price: high to low</option>
     </select>
   </label>
 
@@ -19,4 +43,15 @@
   </ul>
 
   <p *ngIf="listings.length === 0" class="empty">No listings found.</p>
+
+  <nav class="pagination" *ngIf="totalPages > 1">
+    <button
+      *ngFor="let pageNumber of pageNumbers"
+      type="button"
+      [class.active]="pageNumber === page"
+      (click)="goToPage(pageNumber)"
+    >
+      {{ pageNumber + 1 }}
+    </button>
+  </nav>
 </section>

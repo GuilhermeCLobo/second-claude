@@ -1,6 +1,7 @@
 ## Backend (`backend/src/main/java/com/marketplace/backend/`)
 
 - Listing CRUD (browse/get/create/edit/delete/buy) — `listing/ListingController.java` (routes), `listing/ListingService.java` (logic), `listing/Listing.java` (entity)
+- Browse search/price filter/sort/pagination — `listing/ListingSpecifications.java` (filter predicates), `listing/ListingSortOption.java`, `listing/BrowseListingsResponse.java` (paginated envelope)
 - Listing photos (add/remove/reorder, 1-6 ordered, first is cover) — `listing/Photo.java` (entity), same controller/service as above
 - Listing validation shape (create + edit) — `listing/CreateListingRequest.java`; reorder payload shape — `listing/ReorderPhotosRequest.java`
 - Listing domain exceptions/status codes — `listing/ListingExceptionHandler.java`

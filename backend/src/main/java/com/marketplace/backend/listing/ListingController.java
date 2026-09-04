@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -33,8 +34,15 @@ public class ListingController {
     }
 
     @GetMapping
-    public List<ListingResponse> browse(@RequestParam(required = false) Category category) {
-        return listingService.browse(category);
+    public BrowseListingsResponse browse(
+            @RequestParam(required = false) Category category,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(defaultValue = "NEWEST") ListingSortOption sort,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size) {
+        return listingService.browse(category, search, minPrice, maxPrice, sort, page, size);
     }
 
     @GetMapping("/{id}")

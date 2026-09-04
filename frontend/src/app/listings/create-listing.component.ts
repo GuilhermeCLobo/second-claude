@@ -23,18 +23,31 @@ export class CreateListingComponent {
   });
 
   errorMessage: string | null = null;
+  selectedPhoto: File | null = null;
 
   constructor(
     private readonly listingsService: ListingsService,
     private readonly router: Router,
   ) {}
 
+  onPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.selectedPhoto = input.files?.[0] ?? null;
+  }
+
+  get canSubmit(): boolean {
+    return this.form.valid && this.selectedPhoto !== null;
+  }
+
   submit(): void {
+    if (!this.selectedPhoto) {
+      return;
+    }
     this.errorMessage = null;
     const { title, description, price, category } = this.form.getRawValue();
 
     this.listingsService
-      .create({ title, description, price: price as number, category: category as Category })
+      .create({ title, description, price: price as number, category: category as Category }, this.selectedPhoto)
       .subscribe({
         next: (listing) => {
           this.router.navigate(['/listings', listing.id]);

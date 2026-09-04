@@ -45,7 +45,7 @@ describe('ListingsService', () => {
     req.flush([]);
   });
 
-  it('posts a new listing', () => {
+  it('posts a new listing as multipart form data with the listing fields and the photo', (done) => {
     let result: Listing | undefined;
     const listing: Listing = {
       id: 3,
@@ -53,27 +53,34 @@ describe('ListingsService', () => {
       description: 'Digital camera',
       price: 200,
       category: 'ELECTRONICS',
-      photoReference: null,
+      photoReference: '/api/photos/camera.jpg',
       status: 'ACTIVE',
       ownerId: 1,
       buyerId: null,
     };
+    const photo = new File(['fake-photo-bytes'], 'camera.jpg', { type: 'image/jpeg' });
 
     service
-      .create({ title: 'Camera', description: 'Digital camera', price: 200, category: 'ELECTRONICS' })
+      .create({ title: 'Camera', description: 'Digital camera', price: 200, category: 'ELECTRONICS' }, photo)
       .subscribe((response) => {
         result = response;
       });
 
     const req = httpMock.expectOne((request) => request.url === '/api/listings' && request.method === 'POST');
-    expect(req.request.body).toEqual({
-      title: 'Camera',
-      description: 'Digital camera',
-      price: 200,
-      category: 'ELECTRONICS',
-    });
-    req.flush(listing);
+    const formData = req.request.body as FormData;
+    expect(formData.get('photo')).toBe(photo);
 
+    (formData.get('listing') as Blob).text().then((listingJson) => {
+      expect(JSON.parse(listingJson)).toEqual({
+        title: 'Camera',
+        description: 'Digital camera',
+        price: 200,
+        category: 'ELECTRONICS',
+      });
+      done();
+    });
+
+    req.flush(listing);
     expect(result).toEqual(listing);
   });
 

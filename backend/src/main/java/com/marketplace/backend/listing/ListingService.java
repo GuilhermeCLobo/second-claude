@@ -1,6 +1,8 @@
 package com.marketplace.backend.listing;
 
+import com.marketplace.backend.photo.PhotoStore;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -8,9 +10,11 @@ import java.util.List;
 public class ListingService {
 
     private final ListingRepository listingRepository;
+    private final PhotoStore photoStore;
 
-    public ListingService(ListingRepository listingRepository) {
+    public ListingService(ListingRepository listingRepository, PhotoStore photoStore) {
         this.listingRepository = listingRepository;
+        this.photoStore = photoStore;
     }
 
     public List<ListingResponse> browse(Category category) {
@@ -26,9 +30,13 @@ public class ListingService {
         return ListingResponse.from(listing);
     }
 
-    public ListingResponse create(CreateListingRequest request, Long ownerId) {
+    public ListingResponse create(CreateListingRequest request, MultipartFile photo, Long ownerId) {
+        if (photo == null || photo.isEmpty()) {
+            throw new MissingPhotoException();
+        }
+        String photoReference = "/api/photos/" + photoStore.store(photo);
         Listing listing = new Listing(request.title(), request.description(), request.price(),
-                request.category(), null, ownerId);
+                request.category(), photoReference, ownerId);
         Listing saved = listingRepository.save(listing);
         return ListingResponse.from(saved);
     }

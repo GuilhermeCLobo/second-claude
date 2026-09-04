@@ -58,6 +58,10 @@ describe('BrowseListingsComponent', () => {
     expect(items[1].classList).toContain('sold');
     expect(items[1].textContent).toContain('SOLD');
     expect(items[0].classList).not.toContain('sold');
+
+    const thumbnails: NodeListOf<HTMLImageElement> = fixture.nativeElement.querySelectorAll('img.thumbnail');
+    expect(thumbnails.length).toBe(2);
+    expect(thumbnails[0].src).toContain('bike.jpg');
   });
 
   it('refetches with a category query param when the filter changes', () => {

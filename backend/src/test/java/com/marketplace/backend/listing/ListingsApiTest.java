@@ -5,14 +5,18 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -39,6 +43,15 @@ class ListingsApiTest {
                         .content(objectMapper.writeValueAsString(Map.of("username", username, "password", "correct-horse"))))
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(response).get("token").asText();
+    }
+
+    private MockMultipartFile listingPart(Map<String, Object> fields) throws Exception {
+        return new MockMultipartFile("listing", "", "application/json",
+                objectMapper.writeValueAsBytes(fields));
+    }
+
+    private MockMultipartFile photoPart() {
+        return new MockMultipartFile("photo", "camera.jpg", "image/jpeg", "fake-photo-bytes".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -94,11 +107,11 @@ class ListingsApiTest {
 
     @Test
     void creatingAListingWithoutAuthenticationIsRejected() throws Exception {
-        mockMvc.perform(post("/api/listings")
-                        .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(Map.of(
+        mockMvc.perform(multipart("/api/listings")
+                        .file(listingPart(Map.of(
                                 "title", "Camera", "description", "Digital camera",
-                                "price", "150.00", "category", "ELECTRONICS"))))
+                                "price", "150.00", "category", "ELECTRONICS")))
+                        .file(photoPart()))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").exists());
     }
@@ -107,11 +120,11 @@ class ListingsApiTest {
     void creatingAListingWithMissingFieldsIsRejectedWithValidationErrors() throws Exception {
         String token = registerAndLogin("frank");
 
-        mockMvc.perform(post("/api/listings")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(Map.of(
-                                "title", "", "description", "", "category", "VEHICLES"))))
+        mockMvc.perform(multipart("/api/listings")
+                        .file(listingPart(Map.of(
+                                "title", "", "description", "", "category", "VEHICLES")))
+                        .file(photoPart())
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.title").exists())
                 .andExpect(jsonPath("$.errors.description").exists())
@@ -119,22 +132,37 @@ class ListingsApiTest {
     }
 
     @Test
+    void creatingAListingWithoutAPhotoIsRejectedWithAValidationError() throws Exception {
+        String token = registerAndLogin("holly");
+
+        mockMvc.perform(multipart("/api/listings")
+                        .file(listingPart(Map.of(
+                                "title", "Camera", "description", "Digital camera",
+                                "price", "150.00", "category", "ELECTRONICS")))
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.photo").exists());
+    }
+
+    @Test
     void creatingAListingWhenLoggedInPersistsItAsActiveOwnedByTheCreatorAndMakesItBrowsableAndViewable()
             throws Exception {
         String token = registerAndLogin("grace");
 
-        String response = mockMvc.perform(post("/api/listings")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(Map.of(
+        String response = mockMvc.perform(multipart("/api/listings")
+                        .file(listingPart(Map.of(
                                 "title", "Vintage Camera", "description", "Digital camera",
-                                "price", "150.00", "category", "ELECTRONICS"))))
+                                "price", "150.00", "category", "ELECTRONICS")))
+                        .file(photoPart())
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.title").value("Vintage Camera"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.ownerId").exists())
+                .andExpect(jsonPath("$.photoReference").value(org.hamcrest.Matchers.startsWith("/api/photos/")))
                 .andReturn().getResponse().getContentAsString();
         Long id = objectMapper.readTree(response).get("id").asLong();
+        String photoReference = objectMapper.readTree(response).get("photoReference").asText();
 
         mockMvc.perform(get("/api/listings"))
                 .andExpect(jsonPath("$[?(@.id == " + id + ")].title").value("Vintage Camera"));
@@ -142,5 +170,16 @@ class ListingsApiTest {
         mockMvc.perform(get("/api/listings/{id}", id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Vintage Camera"));
+
+        mockMvc.perform(get(photoReference))
+                .andExpect(status().isOk())
+                .andExpect(content().bytes("fake-photo-bytes".getBytes(StandardCharsets.UTF_8)));
+    }
+
+    @Test
+    void requestingAnUnknownPhotoReferenceReturnsNotFound() throws Exception {
+        mockMvc.perform(get("/api/photos/{reference}", "does-not-exist.jpg"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").exists());
     }
 }

@@ -24,7 +24,16 @@ describe('CreateListingComponent', () => {
     httpMock.verify();
   });
 
-  function fillAndSubmit(): void {
+  function setPhoto(): File {
+    const element: HTMLElement = fixture.nativeElement;
+    const photoInput: HTMLInputElement = element.querySelector('input[name="photo"]')!;
+    const photo = new File(['fake-photo-bytes'], 'camera.jpg', { type: 'image/jpeg' });
+    Object.defineProperty(photoInput, 'files', { value: [photo] });
+    photoInput.dispatchEvent(new Event('change'));
+    return photo;
+  }
+
+  function fillAndSubmit(includePhoto = true): void {
     const element: HTMLElement = fixture.nativeElement;
     const title: HTMLInputElement = element.querySelector('input[name="title"]')!;
     const description: HTMLTextAreaElement = element.querySelector('textarea[name="description"]')!;
@@ -39,6 +48,9 @@ describe('CreateListingComponent', () => {
     price.dispatchEvent(new Event('input'));
     category.value = 'ELECTRONICS';
     category.dispatchEvent(new Event('change'));
+    if (includePhoto) {
+      setPhoto();
+    }
     fixture.detectChanges();
 
     const form: HTMLFormElement = element.querySelector('form')!;
@@ -52,12 +64,7 @@ describe('CreateListingComponent', () => {
     fillAndSubmit();
 
     const req = httpMock.expectOne((request) => request.url === '/api/listings' && request.method === 'POST');
-    expect(req.request.body).toEqual({
-      title: 'Camera',
-      description: 'Digital camera',
-      price: 200,
-      category: 'ELECTRONICS',
-    });
+    expect(req.request.body instanceof FormData).toBeTrue();
 
     const created: Listing = {
       id: 5,
@@ -65,7 +72,7 @@ describe('CreateListingComponent', () => {
       description: 'Digital camera',
       price: 200,
       category: 'ELECTRONICS',
-      photoReference: null,
+      photoReference: '/api/photos/camera.jpg',
       status: 'ACTIVE',
       ownerId: 1,
       buyerId: null,
@@ -89,5 +96,13 @@ describe('CreateListingComponent', () => {
   it('disables submit until required fields are filled', () => {
     const button: HTMLButtonElement = fixture.nativeElement.querySelector('button[type="submit"]');
     expect(button.disabled).toBeTrue();
+  });
+
+  it('keeps submit disabled when fields are filled but no photo is selected', () => {
+    fillAndSubmit(false);
+
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('button[type="submit"]');
+    expect(button.disabled).toBeTrue();
+    httpMock.expectNone((request) => request.url === '/api/listings');
   });
 });

@@ -28,7 +28,10 @@ export class ListingsService {
     return this.http.get<Listing>(`/api/listings/${id}`);
   }
 
-  create(request: CreateListingRequest): Observable<Listing> {
-    return this.http.post<Listing>('/api/listings', request);
+  create(request: CreateListingRequest, photo: File): Observable<Listing> {
+    const formData = new FormData();
+    formData.append('listing', new Blob([JSON.stringify(request)], { type: 'application/json' }));
+    formData.append('photo', photo);
+    return this.http.post<Listing>('/api/listings', formData);
   }
 }

@@ -22,7 +22,12 @@
     </select>
   </label>
 
-  <button type="submit" [disabled]="form.invalid">Post listing</button>
+  <label>
+    Photo
+    <input type="file" accept="image/*" name="photo" (change)="onPhotoSelected($event)" />
+  </label>
+
+  <button type="submit" [disabled]="!canSubmit">Post listing</button>
 
   <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
 </form>

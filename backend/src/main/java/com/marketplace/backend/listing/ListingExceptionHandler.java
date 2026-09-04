@@ -20,4 +20,14 @@ public class ListingExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("message", "Validation failed", "errors", Map.of("photo", "must not be blank")));
     }
+
+    @ExceptionHandler(NotListingOwnerException.class)
+    public ResponseEntity<Map<String, String>> handleNotListingOwner(NotListingOwnerException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ListingNotActiveException.class)
+    public ResponseEntity<Map<String, String>> handleListingNotActive(ListingNotActiveException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", ex.getMessage()));
+    }
 }

@@ -40,4 +40,16 @@ public class ListingService {
         Listing saved = listingRepository.save(listing);
         return ListingResponse.from(saved);
     }
+
+    public void delete(Long id, Long requesterId) {
+        Listing listing = listingRepository.findById(id)
+                .orElseThrow(() -> new ListingNotFoundException(id));
+        if (!listing.getOwnerId().equals(requesterId)) {
+            throw new NotListingOwnerException();
+        }
+        if (listing.getStatus() != ListingStatus.ACTIVE) {
+            throw new ListingNotActiveException();
+        }
+        listingRepository.delete(listing);
+    }
 }

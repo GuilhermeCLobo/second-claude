@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -33,7 +34,14 @@ class ListingsApiTest {
     @Autowired
     private ListingRepository listingRepository;
 
+    private record Session(String token, Long userId) {
+    }
+
     private String registerAndLogin(String username) throws Exception {
+        return registerAndLoginSession(username).token();
+    }
+
+    private Session registerAndLoginSession(String username) throws Exception {
         mockMvc.perform(post("/api/auth/register")
                 .contentType("application/json")
                 .content(objectMapper.writeValueAsString(Map.of("username", username, "password", "correct-horse"))));
@@ -42,7 +50,8 @@ class ListingsApiTest {
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of("username", username, "password", "correct-horse"))))
                 .andReturn().getResponse().getContentAsString();
-        return objectMapper.readTree(response).get("token").asText();
+        com.fasterxml.jackson.databind.JsonNode json = objectMapper.readTree(response);
+        return new Session(json.get("token").asText(), json.get("userId").asLong());
     }
 
     private MockMultipartFile listingPart(Map<String, Object> fields) throws Exception {
@@ -181,5 +190,55 @@ class ListingsApiTest {
         mockMvc.perform(get("/api/photos/{reference}", "does-not-exist.jpg"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void deletingWithoutAuthenticationIsRejected() throws Exception {
+        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", 1L));
+
+        mockMvc.perform(delete("/api/listings/{id}", listing.getId()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void deletingAnotherUsersListingIsRejected() throws Exception {
+        Session session = registerAndLoginSession("irene");
+        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId() + 1));
+
+        mockMvc.perform(delete("/api/listings/{id}", listing.getId())
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void deletingASoldListingIsRejected() throws Exception {
+        Session session = registerAndLoginSession("jack");
+        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId()));
+        ReflectionTestUtils.setField(listing, "status", ListingStatus.SOLD);
+        listingRepository.save(listing);
+
+        mockMvc.perform(delete("/api/listings/{id}", listing.getId())
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void deletingYourOwnActiveListingRemovesItSoItNoLongerAppearsWhenBrowsingOrViewing() throws Exception {
+        Session session = registerAndLoginSession("karen");
+        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId()));
+
+        mockMvc.perform(delete("/api/listings/{id}", listing.getId())
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/listings/{id}", listing.getId()))
+                .andExpect(status().isNotFound());
     }
 }

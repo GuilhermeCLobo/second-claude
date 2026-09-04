@@ -34,4 +34,8 @@ export class ListingsService {
     formData.append('photo', photo);
     return this.http.post<Listing>('/api/listings', formData);
   }
+
+  delete(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/listings/${id}`);
+  }
 }

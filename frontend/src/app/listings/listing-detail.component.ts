@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
+import { AuthService } from '../auth/auth.service';
 import { CATEGORIES } from './category';
 import { Listing } from './listing.model';
 import { ListingsService } from './listings.service';
@@ -16,10 +17,13 @@ export class ListingDetailComponent implements OnInit {
   readonly categories = CATEGORIES;
   listing: Listing | null = null;
   notFound = false;
+  deleteError = '';
 
   constructor(
     private readonly route: ActivatedRoute,
+    private readonly router: Router,
     private readonly listingsService: ListingsService,
+    private readonly authService: AuthService,
   ) {}
 
   ngOnInit(): void {
@@ -36,5 +40,28 @@ export class ListingDetailComponent implements OnInit {
 
   categoryLabel(): string {
     return this.categories.find((category) => category.value === this.listing?.category)?.label ?? '';
+  }
+
+  canDelete(): boolean {
+    return (
+      !!this.listing &&
+      this.listing.status === 'ACTIVE' &&
+      this.listing.ownerId === this.authService.session()?.userId
+    );
+  }
+
+  delete(): void {
+    if (!this.listing) {
+      return;
+    }
+    this.deleteError = '';
+    this.listingsService.delete(this.listing.id).subscribe({
+      next: () => {
+        this.router.navigateByUrl('/');
+      },
+      error: () => {
+        this.deleteError = 'Could not delete this listing.';
+      },
+    });
   }
 }

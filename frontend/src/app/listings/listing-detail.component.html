@@ -6,6 +6,9 @@
   <p class="price">{{ listing.price | currency }}</p>
   <p class="category">{{ categoryLabel() }}</p>
   <p class="description">{{ listing.description }}</p>
+
+  <button *ngIf="canDelete()" type="button" (click)="delete()">Delete listing</button>
+  <p *ngIf="deleteError" class="delete-error">{{ deleteError }}</p>
 </section>
 
 <p *ngIf="notFound" class="not-found">Listing not found.</p>

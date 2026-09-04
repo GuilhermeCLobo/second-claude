@@ -107,4 +107,17 @@ describe('ListingsService', () => {
 
     expect(result).toEqual(listing);
   });
+
+  it('sends a DELETE request for the given listing id', () => {
+    let completed = false;
+
+    service.delete(1).subscribe(() => {
+      completed = true;
+    });
+
+    const req = httpMock.expectOne((request) => request.url === '/api/listings/1' && request.method === 'DELETE');
+    req.flush(null);
+
+    expect(completed).toBeTrue();
+  });
 });

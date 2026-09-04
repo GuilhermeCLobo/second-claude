@@ -1,1 +1,14 @@
+<header>
+  <nav>
+    <ng-container *ngIf="authService.session() as session; else loggedOut">
+      <span>Logged in as {{ session.username }}</span>
+      <button type="button" (click)="logout()">Log out</button>
+    </ng-container>
+    <ng-template #loggedOut>
+      <a routerLink="/login">Log in</a>
+      <a routerLink="/register">Register</a>
+    </ng-template>
+  </nav>
+</header>
+
 <router-outlet />

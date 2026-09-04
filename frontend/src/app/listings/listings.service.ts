@@ -35,6 +35,10 @@ export class ListingsService {
     return this.http.post<Listing>('/api/listings', formData);
   }
 
+  update(id: number, request: CreateListingRequest): Observable<Listing> {
+    return this.http.put<Listing>(`/api/listings/${id}`, request);
+  }
+
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`/api/listings/${id}`);
   }

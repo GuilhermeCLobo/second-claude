@@ -1,0 +1,30 @@
+<form *ngIf="!notFound" [formGroup]="form" (ngSubmit)="submit()">
+  <label>
+    Title
+    <input type="text" formControlName="title" name="title" />
+  </label>
+
+  <label>
+    Description
+    <textarea formControlName="description" name="description"></textarea>
+  </label>
+
+  <label>
+    Price
+    <input type="number" formControlName="price" name="price" step="0.01" />
+  </label>
+
+  <label>
+    Category
+    <select formControlName="category" name="category">
+      <option value="" disabled>Select a category</option>
+      <option *ngFor="let category of categories" [value]="category.value">{{ category.label }}</option>
+    </select>
+  </label>
+
+  <button type="submit" [disabled]="!form.valid">Save changes</button>
+
+  <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
+</form>
+
+<p *ngIf="notFound" class="not-found">Listing not found.</p>

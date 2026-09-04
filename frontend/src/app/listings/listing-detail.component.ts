@@ -51,6 +51,21 @@ export class ListingDetailComponent implements OnInit {
     );
   }
 
+  canEdit(): boolean {
+    return (
+      !!this.listing &&
+      this.listing.status === 'ACTIVE' &&
+      this.listing.ownerId === this.authService.session()?.userId
+    );
+  }
+
+  edit(): void {
+    if (!this.listing) {
+      return;
+    }
+    this.router.navigate(['/listings', this.listing.id, 'edit']);
+  }
+
   delete(): void {
     if (!this.listing) {
       return;

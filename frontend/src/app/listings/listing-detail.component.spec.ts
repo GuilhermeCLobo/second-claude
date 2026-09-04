@@ -25,7 +25,7 @@ describe('ListingDetailComponent', () => {
   };
 
   function setUp(): void {
-    router = jasmine.createSpyObj<Router>('Router', ['navigateByUrl']);
+    router = jasmine.createSpyObj<Router>('Router', ['navigateByUrl', 'navigate']);
     TestBed.configureTestingModule({
       imports: [ListingDetailComponent],
       providers: [
@@ -114,6 +114,29 @@ describe('ListingDetailComponent', () => {
     const element: HTMLElement = fixture.nativeElement;
     expect(element.querySelector('.delete-listing')).toBeNull();
     expect(element.querySelector('.buy-listing')).toBeNull();
+  });
+
+  it('offers an edit action to the owner of an ACTIVE listing, and it navigates to the edit form', () => {
+    setUpAsLoggedInUser(1);
+    fixture.detectChanges();
+    httpMock.expectOne((request) => request.url === '/api/listings/1').flush(listing);
+    fixture.detectChanges();
+
+    const element: HTMLElement = fixture.nativeElement;
+    const button = element.querySelector('.edit-listing') as HTMLButtonElement;
+    expect(button).toBeTruthy();
+    button.click();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/listings', 1, 'edit']);
+  });
+
+  it('does not offer an edit action to a non-owner or for a SOLD listing', () => {
+    setUpAsLoggedInUser(2);
+    fixture.detectChanges();
+    httpMock.expectOne((request) => request.url === '/api/listings/1').flush(listing);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.edit-listing')).toBeNull();
   });
 
   it('offers a delete action, but not a buy action, to the owner of an ACTIVE listing, and deleting navigates back to browse', () => {

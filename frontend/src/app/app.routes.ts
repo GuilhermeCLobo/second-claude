@@ -7,6 +7,7 @@ import { RegisterComponent } from './auth/register.component';
 import { ResetPasswordComponent } from './auth/reset-password.component';
 import { BrowseListingsComponent } from './listings/browse-listings.component';
 import { CreateListingComponent } from './listings/create-listing.component';
+import { EditListingComponent } from './listings/edit-listing.component';
 import { ListingDetailComponent } from './listings/listing-detail.component';
 import { MyListingsComponent } from './listings/my-listings.component';
 
@@ -16,6 +17,7 @@ export const routes: Routes = [
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
   { path: 'listings/new', component: CreateListingComponent, canActivate: [authGuard] },
+  { path: 'listings/:id/edit', component: EditListingComponent, canActivate: [authGuard] },
   { path: 'my-listings', component: MyListingsComponent, canActivate: [authGuard] },
   { path: 'listings/:id', component: ListingDetailComponent },
   { path: '', component: BrowseListingsComponent },

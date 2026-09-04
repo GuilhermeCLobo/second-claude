@@ -24,6 +24,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -198,6 +199,110 @@ class ListingsApiTest {
         mockMvc.perform(get("/api/photos/{reference}", "does-not-exist.jpg"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void editingWithoutAuthenticationIsRejected() throws Exception {
+        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", 1L));
+
+        mockMvc.perform(put("/api/listings/{id}", listing.getId())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "title", "Electric Scooter", "description", "Barely used",
+                                "price", "120.00", "category", "VEHICLES"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void editingAnotherUsersListingIsRejected() throws Exception {
+        Session session = registerAndLoginSession("quinn");
+        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId() + 1));
+
+        mockMvc.perform(put("/api/listings/{id}", listing.getId())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "title", "Electric Scooter", "description", "Barely used",
+                                "price", "120.00", "category", "VEHICLES")))
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void editingASoldListingIsRejected() throws Exception {
+        Session session = registerAndLoginSession("rosa");
+        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId()));
+        ReflectionTestUtils.setField(listing, "status", ListingStatus.SOLD);
+        listingRepository.save(listing);
+
+        mockMvc.perform(put("/api/listings/{id}", listing.getId())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "title", "Electric Scooter", "description", "Barely used",
+                                "price", "120.00", "category", "VEHICLES")))
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void editingANonexistentListingReturnsNotFound() throws Exception {
+        String token = registerAndLogin("sam");
+
+        mockMvc.perform(put("/api/listings/{id}", 999999)
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "title", "Electric Scooter", "description", "Barely used",
+                                "price", "120.00", "category", "VEHICLES")))
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void editingWithInvalidPayloadIsRejectedWithValidationErrors() throws Exception {
+        Session session = registerAndLoginSession("tina");
+        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId()));
+
+        mockMvc.perform(put("/api/listings/{id}", listing.getId())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "title", "", "description", "", "price", "-5", "category", "VEHICLES")))
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.title").exists())
+                .andExpect(jsonPath("$.errors.description").exists())
+                .andExpect(jsonPath("$.errors.price").exists());
+    }
+
+    @Test
+    void editingYourOwnActiveListingUpdatesItsDetailsAndLeavesThePhotoUnchanged() throws Exception {
+        Session session = registerAndLoginSession("uma");
+        Listing listing = listingRepository.save(new Listing("Scooter", "Electric scooter", new BigDecimal("150.00"),
+                Category.VEHICLES, "scooter.jpg", session.userId()));
+
+        mockMvc.perform(put("/api/listings/{id}", listing.getId())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "title", "Electric Scooter", "description", "Barely used, one owner",
+                                "price", "120.00", "category", "OTHER")))
+                        .header("Authorization", "Bearer " + session.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Electric Scooter"))
+                .andExpect(jsonPath("$.description").value("Barely used, one owner"))
+                .andExpect(jsonPath("$.price").value(120.00))
+                .andExpect(jsonPath("$.category").value("OTHER"))
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.photoReference").value("scooter.jpg"));
+
+        mockMvc.perform(get("/api/listings/{id}", listing.getId()))
+                .andExpect(jsonPath("$.title").value("Electric Scooter"))
+                .andExpect(jsonPath("$.photoReference").value("scooter.jpg"));
     }
 
     @Test

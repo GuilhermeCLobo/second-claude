@@ -93,4 +93,11 @@ public class Listing {
     public Long getBuyerId() {
         return buyerId;
     }
+
+    public void update(String title, String description, BigDecimal price, Category category) {
+        this.title = title;
+        this.description = description;
+        this.price = price;
+        this.category = category;
+    }
 }
